@@ -1,15 +1,30 @@
-# Hello TensorFlow C API
+# Hello TensorFlow Windows C API
 
-[![Build status](https://ci.appveyor.com/api/projects/status/uy3qrnc0hq67m3l7/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-c-api/branch/master)[![License](https://img.shields.io/github/license/Neargye/hello_tf_c_api.svg)](LICENSE)
+[![Build status](https://ci.appveyor.com/api/projects/status/vmp61qk96clboeds/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-win-c-api/branch/master)[![License](https://img.shields.io/github/license/Neargye/hello_tf_win_c_api.svg)](LICENSE)
 
 A small example of how to run TensorFlow C API on Windows.
 
 [Source code](main.cpp)
 
+## [Examples code](main.cpp)
+
+source.cpp
+
+```cpp
+#include <iostream>
+#define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
+#include "tensorflow/include/c_api.h" // TensorFlow C API header
+
+int main() {
+  std::cout<< "TensorFlow Version: " << TF_Version() << std::endl;
+  return 0;
+}
+```
+
 ## Link tensorflow.dll
 
 For CPU, you can download the .dll from:
-<https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-*.*.*.zip>, where *.*.* - version of TensorFlow which you need.
+<https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-*.*.*.zip>, where `*.*.*` - version of TensorFlow which you need.
 
 Or build dll whichversion  you need from the sources.
 
@@ -70,6 +85,20 @@ lib /def:yourpath/tensorflow.def /OUT:yourpath/tensorflow.lib /MACHINE:X64
 
 /MACHINE:X64 - fow x64 build, and /MACHINE:X86 for x32 build.
 
-Now you can link the library.
+Now you can link the library:
+
+CMakeLists.txt
+
+```text
+link_directories(${CMAKE_SOURCE_DIR}/tensorflow/lib)
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME} tensorflow)
+```
+
+or in Visual Studio:
+
+"Project"->"Properties"->Configuration Properties"->"Linker"->"Additional Dependencies" and add path to your tensorflow.lib as a next line.
+
+You also must make sure that the tensorflow.dll file is either in the directory contained by the %PATH% environment variable or that its copy is in Output Directory (by default, this is Debug\Release under your project's folder).
 
 ## Licensed under the [Unlicense](LICENSE)
