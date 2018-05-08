@@ -1,0 +1,34 @@
+version: "{branch} #{build}"
+
+image:
+  - Visual Studio 2017
+
+platform:
+  - x64
+
+configuration:
+  - Debug
+
+shallow_clone: true
+
+matrix:
+  fast_finish: false
+
+environment:
+  matrix:
+    - GENERATOR: "Visual Studio 15 2017 Win64"
+    - GENERATOR: "Visual Studio 15 2017"
+    - GENERATOR: "Visual Studio 14 2015 Win64"
+    - GENERATOR: "Visual Studio 14 2015"
+
+before_build:
+  - if exist build RMDIR /S /Q build
+  - if not exist build mkdir build
+  - cd build
+  - cmake .. -G "%GENERATOR%"
+
+build_script:
+  - cmake --build . --config %CONFIGURATION%
+
+test_script:
+  - ctest -V --output-on-failure -C %CONFIGURATION%
