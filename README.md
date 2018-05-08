@@ -4,16 +4,16 @@
 
 A small example of how to run TensorFlow C API on Windows.
 
-[Source code](main.cpp)
+[Source code](src/main.cpp)
 
-## [Examples code](main.cpp)
+## [Examples code](src/main.cpp)
 
 source.cpp
 
 ```cpp
 #include <iostream>
 #define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
-#include "tensorflow/include/c_api.h" // TensorFlow C API header
+#include <c_api.h> // TensorFlow C API header
 
 int main() {
   std::cout<< "TensorFlow Version: " << TF_Version() << std::endl;
@@ -90,9 +90,9 @@ Now you can link the library:
 CMakeLists.txt
 
 ```text
-link_directories(${CMAKE_SOURCE_DIR}/tensorflow/lib)
-add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} tensorflow)
+link_directories(tensorflow/lib)
+add_executable(hello_tf src/main.cpp)
+target_link_libraries(hello_tf tensorflow)
 ```
 
 or in Visual Studio:

@@ -16,8 +16,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     endif()
 endif()
 
-link_directories(${CMAKE_SOURCE_DIR}/tensorflow/lib)
+include_directories(tensorflow/include)
 
-add_executable(${PROJECT_NAME} main.cpp)
+link_directories(tensorflow/lib)
 
-target_link_libraries(${PROJECT_NAME} tensorflow)
+add_executable(hello_tf src/main.cpp)
+
+target_link_libraries(hello_tf tensorflow)
