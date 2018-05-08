@@ -1,6 +1,10 @@
 # Hello TensorFlow C API
 
+[![Build status](https://ci.appveyor.com/api/projects/status/uy3qrnc0hq67m3l7/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-c-api/branch/master)[![License](https://img.shields.io/github/license/Neargye/hello_tf_c_api.svg)](LICENSE)
+
 A small example of how to run TensorFlow C API on Windows.
+
+[Source code](main.cpp)
 
 ## Link tensorflow.dll
 
@@ -61,8 +65,10 @@ TFE_ContextClearCaches
 Now from that definition file, we can finally create the .lib file. We use the “lib” tool for this, so run this command in your Visual Studio Command Prompt:
 
 ```bash
-lib /def:yourpath/tensorflow.def /OUT:yourpath/tensorflow.lib
+lib /def:yourpath/tensorflow.def /OUT:yourpath/tensorflow.lib /MACHINE:X64
 ```
+
+/MACHINE:X64 - fow x64 build, and /MACHINE:X86 for x32 build.
 
 Now you can link the library.
 
