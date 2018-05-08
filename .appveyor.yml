@@ -17,9 +17,7 @@ matrix:
 environment:
   matrix:
     - GENERATOR: "Visual Studio 15 2017 Win64"
-    - GENERATOR: "Visual Studio 15 2017"
-    - GENERATOR: "Visual Studio 14 2015 Win64"
-    - GENERATOR: "Visual Studio 14 2015"
+    - GENERATOR: "Visual Studio 14 2015 Win64""
 
 before_build:
   - if exist build RMDIR /S /Q build
