@@ -8,7 +8,7 @@ A small example of how to run TensorFlow C API on Windows.
 
 ## [Examples code](src/main.cpp)
 
-source.cpp
+* hello_tf.cpp
 
 ```cpp
 #include <iostream>
@@ -26,7 +26,7 @@ int main() {
 For CPU, you can download the .dll from:
 <https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-*.*.*.zip>, where `*.*.*` - version of TensorFlow which you need.
 
-Or build dll whichversion  you need from the sources.
+Or build dll which version you need from the sources, with CPU or GPU support.
 
 For example:
 
