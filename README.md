@@ -4,11 +4,7 @@
 
 A small example of how to run TensorFlow C API on Windows.
 
-[Source code](src/main.cpp)
-
 ## [Examples code](src/main.cpp)
-
-* hello_tf.cpp
 
 ```cpp
 #include <iostream>
@@ -21,7 +17,7 @@ int main() {
 }
 ```
 
-## Link tensorflow.dll
+## Get tensorflow.dll
 
 For CPU, you can download the .dll from:
 <https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-*.*.*.zip>, where `*.*.*` - version of TensorFlow which you need.
@@ -32,11 +28,11 @@ For example:
 
 I used v1.8.0, downloaded dll from here <https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.8.0.zip>
 
-Create .lib file from .dll
+### Create .lib file from .dll
 
 Open the Visual Studio Command Prompt, you find its shortcut in "Start"->"Programs"->"Microsoft Visual Studio"->"Tools". Now run the dumpbin command to get a list of all exported functions of your dll:
 
-```bash
+```text
 dumpbin /exports yourpath/tensorflow.dll
 ```
 
@@ -79,23 +75,23 @@ TFE_ContextClearCaches
 
 Now from that definition file, we can finally create the .lib file. We use the “lib” tool for this, so run this command in your Visual Studio Command Prompt:
 
-```bash
+```text
 lib /def:yourpath/tensorflow.def /OUT:yourpath/tensorflow.lib /MACHINE:X64
 ```
 
 /MACHINE:X64 - fow x64 build, and /MACHINE:X86 for x32 build.
 
-Now you can link the library:
+### Link tensorflow.dll
 
-CMakeLists.txt
+#### CMakeLists.txt
 
 ```text
-link_directories(tensorflow/lib)
-add_executable(hello_tf src/main.cpp)
-target_link_libraries(hello_tf tensorflow)
+link_directories(yourpath/to/tensorflow) # path to tensorflow.dll and tensorflow.lib
+... # other
+target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE> tensorflow)
 ```
 
-or in Visual Studio:
+#### Visual Studio
 
 "Project"->"Properties"->Configuration Properties"->"Linker"->"Additional Dependencies" and add path to your tensorflow.lib as a next line.
 
