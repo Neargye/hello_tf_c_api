@@ -20,6 +20,5 @@ include_directories(tensorflow/include)
 
 link_directories(tensorflow/lib)
 
-add_executable(hello_tf src/main.cpp)
-
+add_executable(hello_tf src/hello_tf.cpp)
 target_link_libraries(hello_tf tensorflow)
