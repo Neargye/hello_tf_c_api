@@ -4,29 +4,28 @@
 
 A small example of how to run TensorFlow C API on Windows.
 
-## [Examples code](src/main.cpp)
+P.S. Code from examples can work on other platforms.
 
-```cpp
-#include <iostream>
-#define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
-#include <c_api.h> // TensorFlow C API header
+## [Example](src/)
 
-int main() {
-  std::cout<< "TensorFlow Version: " << TF_Version() << std::endl;
-  return 0;
-}
+* [Hello TF](src/hello_tf.cpp)
+* [Run session](src/session_run.cpp)
+* [Load graph](src/load_graph.cpp)
+
+## Build example
+
+```text
+mkdir build
+cd build
+cmake .. -G "Visual Studio 15 2017 Win64" # or other versions VS
+cmake --build . --config Debug
 ```
 
 ## Get tensorflow.dll
 
-For CPU, you can download the .dll from:
-<https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-*.*.*.zip>, where `*.*.*` - version of TensorFlow which you need.
+For CPU, you can download the tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
 
 Or build dll which version you need from the sources, with CPU or GPU support.
-
-For example:
-
-I used v1.8.0, downloaded dll from here <https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.8.0.zip>
 
 ### Create .lib file from .dll
 
