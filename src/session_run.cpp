@@ -1,7 +1,7 @@
 #if defined(_MSC_VER) && !defined(COMPILER_MSVC)
 #  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
 #endif
-#include <c_api.h>     // TensorFlow C API header
+#include <c_api.h> // TensorFlow C API header
 #include "tf_utils.hpp"
 #include <array>
 #include <iostream>
@@ -31,12 +31,9 @@ int main() {
   };
 
   TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT,
-                                         input_dims.data(), input_dims.size(),
+                                         input_dims.data(), static_cast<int>(input_dims.size()),
                                          input_vals.data(), input_vals.size() * sizeof(float),
                                          deallocate_tensor, nullptr);
-
-  std::array<TF_Tensor*, 1> input_tensors = {input_tensor};
-  std::array<TF_Output, 1> input_ops = {input_op};
 
   TF_Output out_op = {TF_GraphOperationByName(graph, "output_node0"), 0};
   if (input_op.oper == nullptr) {
