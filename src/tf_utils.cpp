@@ -54,9 +54,8 @@ TF_Graph* LoadGraphDef(const char* file) {
   TF_DeleteBuffer(buffer);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteStatus(status);
     TF_DeleteGraph(graph);
-    return nullptr;
+    graph = nullptr;
   }
 
   TF_DeleteStatus(status);

@@ -6,5 +6,6 @@
 
 int main() {
   std::cout<< "TensorFlow Version: " << TF_Version() << std::endl;
+
   return 0;
 }

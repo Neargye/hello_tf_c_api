@@ -83,7 +83,7 @@ int main() {
 
   auto data = static_cast<float*>(TF_TensorData(output_tensor));
 
-  std::cout << "output vals: " << data[0] << "," << data[1] << "," << data[2] << "," << data[3] << std::endl;
+  std::cout << "Output vals: " << data[0] << "," << data[1] << "," << data[2] << "," << data[3] << std::endl;
 
   TF_DeleteTensor(input_tensor);
   TF_DeleteTensor(output_tensor);
