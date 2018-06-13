@@ -29,5 +29,8 @@ target_link_libraries(session_run tensorflow)
 add_executable(load_graph src/load_graph.cpp)
 target_link_libraries(load_graph tensorflow)
 
+add_executable(interface src/interface.cpp src/tf_utils.cpp src/tf_utils.hpp)
+target_link_libraries(interface tensorflow)
+
 configure_file(models/graph.pb ${CMAKE_CURRENT_BINARY_DIR}/graph.pb COPYONLY)
 configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
