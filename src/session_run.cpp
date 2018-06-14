@@ -6,7 +6,7 @@
 #include <array>
 #include <iostream>
 
-static void deallocate_tensor(void*, size_t, void*) {}
+static void DeallocateTensor(void*, size_t, void*) {}
 
 int main() {
   TF_Graph* graph = LoadGraphDef("graph.pb");
@@ -33,7 +33,7 @@ int main() {
   TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT,
                                          input_dims.data(), static_cast<int>(input_dims.size()),
                                          input_vals.data(), input_vals.size() * sizeof(float),
-                                         deallocate_tensor, nullptr);
+                                         DeallocateTensor, nullptr);
 
   TF_Output out_op = {TF_GraphOperationByName(graph, "output_node0"), 0};
   if (input_op.oper == nullptr) {
