@@ -64,7 +64,7 @@ int main() {
     return 2;
   }
 
-    std::cout << "Load draph success" << std::endl;
+  std::cout << "Load draph success" << std::endl;
 
   TF_DeleteStatus(status);
 

@@ -15,7 +15,7 @@ static void DeallocateTensor(void* data, size_t len, void* arg) {
 int main() {
   TF_Graph* graph = LoadGraphDef("graph.pb");
   if (graph == nullptr) {
-    std::cout << "Can't init graph" << std::endl;
+    std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
