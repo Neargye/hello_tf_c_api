@@ -5,6 +5,7 @@
 #include "tf_utils.hpp"
 #include <array>
 #include <iostream>
+#include <vector>
 
 static void DeallocateTensor(void*, size_t, void*) {}
 
@@ -22,7 +23,7 @@ int main() {
   }
 
   std::array<int64_t, 3> input_dims = {1, 5, 12};
-  std::array<float, 5 * 12> input_vals = {
+  std::vector<float> input_vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
     -0.4809143f, -0.3773398f, 0.1746384f, 0.7719052f, -0.4067171f, 0.0111654f, 0.0054433f, 0.9134697f, 0.7192584f, -0.0399981f, 0.1177435f, -0.6835230f,

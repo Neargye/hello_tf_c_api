@@ -6,6 +6,7 @@
 #include <array>
 #include <iostream>
 #include <algorithm>
+#include <vector>
 
 static void DeallocateTensor(void* data, size_t len, void* arg) {
   free(data);
@@ -25,10 +26,13 @@ int main() {
     return 2;
   }
 
-  std::array<int64_t, 3> input_dims = {1, 5, 12};
-  const std::size_t data_size = 5 * 12 * sizeof(float);
-  float* input_vals = static_cast<float*>(malloc(data_size));
-  std::array<float, 5 * 12> m_input_vals = {
+  const std::array<int64_t, 3> input_dims = {1, 5, 12};
+  std::size_t input_vals_size = sizeof(float);
+  for (auto i : input_dims) {
+    input_vals_size *= i;
+  }
+  float* input_vals = static_cast<float*>(malloc(input_vals_size));
+  std::vector<float> m_input_vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
     -0.4809143f, -0.3773398f, 0.1746384f, 0.7719052f, -0.4067171f, 0.0111654f, 0.0054433f, 0.9134697f, 0.7192584f, -0.0399981f, 0.1177435f, -0.6835230f,
@@ -40,7 +44,7 @@ int main() {
 
   TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT,
                                          input_dims.data(), static_cast<int>(input_dims.size()),
-                                         input_vals, data_size,
+                                         input_vals, input_vals_size,
                                          DeallocateTensor, nullptr);
 
   TF_Output out_op = {TF_GraphOperationByName(graph, "output_node0"), 0};
