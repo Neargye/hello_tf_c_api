@@ -60,7 +60,7 @@ const char* TFDataTypeToString(TF_DataType data_type) {
   }
 }
 
-void EnumerateOpInputs(TF_Graph* graph, TF_Operation* op) {
+void PrintOpInputs(TF_Graph* graph, TF_Operation* op) {
   TF_Status* status = TF_NewStatus();
   const int num_inputs = TF_OperationNumInputs(op);
 
@@ -73,7 +73,7 @@ void EnumerateOpInputs(TF_Graph* graph, TF_Operation* op) {
   }
 }
 
-void EnumerateOpOutputs(TF_Graph* graph, TF_Operation* op) {
+void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
   TF_Status* status = TF_NewStatus();
   const int num_outputs = TF_OperationNumOutputs(op);
 
@@ -112,7 +112,7 @@ void EnumerateOpOutputs(TF_Graph* graph, TF_Operation* op) {
   TF_DeleteStatus(status);
 }
 
-void EnumerateOp(TF_Graph* graph) {
+void PrintOp(TF_Graph* graph) {
   TF_Operation* op = nullptr;
   size_t pos = 0;
 
@@ -126,8 +126,8 @@ void EnumerateOp(TF_Graph* graph) {
 
     std::cout << pos << ": " << name << " type: " << type << " device: " << device << " number inputs: " << num_inputs << " number outputs: " << num_outputs << std::endl;
 
-    EnumerateOpInputs(graph, op);
-    EnumerateOpOutputs(graph, op);
+    PrintOpInputs(graph, op);
+    PrintOpOutputs(graph, op);
     std::cout << std::endl;
   }
 }
@@ -139,7 +139,7 @@ int main() {
     return 1;
   }
 
-  EnumerateOp(graph);
+  PrintOp(graph);
 
   TF_DeleteGraph(graph);
 

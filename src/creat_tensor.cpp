@@ -19,7 +19,7 @@ int main() {
   for (auto i : dims) {
     size *= i;
   }
-  float* data = static_cast<float*>(malloc(size));
+  auto data = static_cast<float*>(malloc(size));
   std::vector<float> vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
