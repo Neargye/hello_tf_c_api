@@ -63,9 +63,9 @@ int main() {
     }
   }
 
-  TF_DeleteTensor(tensor);
-
   std::cout << "Success creat tensor" << std::endl;
+
+  TF_DeleteTensor(tensor);
 
   return 0;
 }

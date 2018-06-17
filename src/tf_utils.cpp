@@ -86,12 +86,16 @@ bool RunSession(TF_Graph* graph,
   );
 
   if (TF_GetCode(status) != TF_OK) {
+    TF_CloseSession(sess, status);
+    TF_DeleteSession(sess, status);
     TF_DeleteStatus(status);
     return false;
   }
 
   TF_CloseSession(sess, status);
   if (TF_GetCode(status) != TF_OK) {
+    TF_CloseSession(sess, status);
+    TF_DeleteSession(sess, status);
     TF_DeleteStatus(status);
     return false;
   }

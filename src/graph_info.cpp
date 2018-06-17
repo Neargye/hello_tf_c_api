@@ -141,5 +141,7 @@ int main() {
 
   EnumerateOp(graph);
 
+  TF_DeleteGraph(graph);
+
   return 0;
 }

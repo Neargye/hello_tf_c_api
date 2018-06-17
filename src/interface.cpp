@@ -69,6 +69,7 @@ int main() {
 
   TF_DeleteTensor(input_tensor);
   TF_DeleteTensor(output_tensor);
+  TF_DeleteGraph(graph);
 
   return 0;
 }
