@@ -11,15 +11,19 @@ P.S. Code from examples can work on other platforms.
 ## [Example](src/)
 
 * [Hello TF](src/hello_tf.cpp)
+* [Creat Tensor](src/creat_tensor.cpp)
 * [Run session](src/session_run.cpp)
 * [Load graph](src/load_graph.cpp)
+* [Interface](src/interface.cpp)
+* [Tensor Info](src/tensor_info.cpp)
+* [Graph Info](src/graph_info.cpp)
 
 ## Build example
 
 ```text
 mkdir build
 cd build
-cmake .. -G "Visual Studio 15 2017 Win64" # or other versions VS
+cmake .. -G "Visual Studio 15 2017 Win64" # or other versions Visual Studio
 cmake --build . --config Debug
 ```
 
