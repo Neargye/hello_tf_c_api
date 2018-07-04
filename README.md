@@ -27,6 +27,11 @@ cmake .. -G "Visual Studio 15 2017 Win64" # or other versions Visual Studio
 cmake --build . --config Debug
 ```
 
+### Remarks
+
+* The tensorflow.dll in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
+* Make sure that the tensorflow.dll is in Output Directory (by default, this is Debug\Release under your project's folder) or either in the directory contained by the %PATH% environment variable.
+
 ## Get tensorflow.dll
 
 For CPU, you can download the tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
@@ -100,6 +105,6 @@ target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE> tensorflow)
 
 "Project"->"Properties"->Configuration Properties"->"Linker"->"Additional Dependencies" and add path to your tensorflow.lib as a next line.
 
-You also must make sure that the tensorflow.dll file is either in the directory contained by the %PATH% environment variable or that its copy is in Output Directory (by default, this is Debug\Release under your project's folder).
+Make sure that the tensorflow.dll is in Output Directory (by default, this is Debug\Release under your project's folder) or either in the directory contained by the %PATH% environment variable.
 
 ## Licensed under the [Unlicense](LICENSE)
