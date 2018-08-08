@@ -61,7 +61,6 @@ const char* TFDataTypeToString(TF_DataType data_type) {
 }
 
 void PrintOpInputs(TF_Graph* graph, TF_Operation* op) {
-  TF_Status* status = TF_NewStatus();
   const int num_inputs = TF_OperationNumInputs(op);
 
   std::cout << "Number inputs: " << num_inputs << std::endl;
