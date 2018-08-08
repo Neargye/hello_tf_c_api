@@ -6,15 +6,17 @@
 #include <iostream>
 #include <vector>
 
-void tensor_deallocation(void *data, size_t len, void *arg) { free(data); }
+void tensor_deallocation(void* data, std::size_t, void*) {
+  free(data);
+}
 
-static void DeallocateTensor(void* data, size_t len, void* arg) {
+static void DeallocateTensor(void* data, std::size_t, void*) {
   free(data);
   std::cout << "Deallocate tensor" << std::endl;
 }
 
 int main() {
-  const std::array<int64_t, 3> dims = {1, 5, 12};
+  const std::array<std::int64_t, 3> dims = {1, 5, 12};
   std::size_t size = sizeof(float);
   for (auto i : dims) {
     size *= i;
@@ -47,7 +49,7 @@ int main() {
   }
 
   for (std::size_t i = 0; i < dims.size(); i++) {
-    if (TF_Dim(tensor, i) != dims[i]) {
+    if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
       std::cout << "Wrong dimension size for dim: " << i << std::endl;
     }
   }

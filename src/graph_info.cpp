@@ -60,7 +60,7 @@ const char* TFDataTypeToString(TF_DataType data_type) {
   }
 }
 
-void PrintOpInputs(TF_Graph* graph, TF_Operation* op) {
+void PrintOpInputs(TF_Graph*, TF_Operation* op) {
   const int num_inputs = TF_OperationNumInputs(op);
 
   std::cout << "Number inputs: " << num_inputs << std::endl;
@@ -90,7 +90,7 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
       continue;
     }
 
-    std::vector<int64_t> dims(num_dims);
+    std::vector<std::int64_t> dims(num_dims);
     TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
 
     if (TF_GetCode(status) != TF_OK) {
@@ -113,7 +113,7 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
 
 void PrintOp(TF_Graph* graph) {
   TF_Operation* op = nullptr;
-  size_t pos = 0;
+  std::size_t pos = 0;
 
   while ((op = TF_GraphNextOperation(graph, &pos)) != nullptr) {
     const char* name = TF_OperationName(op);

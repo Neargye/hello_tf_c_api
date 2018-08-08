@@ -60,7 +60,7 @@ const char *TFDataTypeToString(TF_DataType data_type) {
   }
 }
 
-void PrintInputs(TF_Graph *graph, TF_Operation *op) {
+void PrintInputs(TF_Graph*, TF_Operation* op) {
   const int num_inputs = TF_OperationNumInputs(op);
 
   for (int i = 0; i < num_inputs; ++i) {
@@ -70,7 +70,7 @@ void PrintInputs(TF_Graph *graph, TF_Operation *op) {
   }
 }
 
-void PrintOutputs(TF_Graph *graph, TF_Operation *op) {
+void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
   const int num_outputs = TF_OperationNumOutputs(op);
   TF_Status *status = TF_NewStatus();
 
@@ -84,7 +84,7 @@ void PrintOutputs(TF_Graph *graph, TF_Operation *op) {
       continue;
     }
 
-    std::vector<int64_t> dims(num_dims);
+    std::vector<std::int64_t> dims(num_dims);
 
     std::cout << "Output: " << i << " type: " << TFDataTypeToString(type);
     TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
