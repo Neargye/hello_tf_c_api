@@ -1,5 +1,7 @@
 # Example TensorFlow C API
 
+![Example TensorFlow C API logo](logo.png)
+
 [![Build status](https://ci.appveyor.com/api/projects/status/vmp61qk96clboeds/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-win-c-api/branch/master)
 [![License](https://img.shields.io/github/license/Neargye/hello_tf_win_c_api.svg)](LICENSE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/65a8401ec7da4ff49a9d4603dfbb600a)](https://www.codacy.com/app/Neargye/hello_tf_win_c_api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/hello_tf_win_c_api&amp;utm_campaign=Badge_Grade)
@@ -34,7 +36,7 @@ cmake --build . --config Debug
 
 ## Get tensorflow.dll
 
-For CPU, you can download the tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
+For x64 CPU, you can download the tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
 
 Or build dll which version you need from the sources, with CPU or GPU support.
 
