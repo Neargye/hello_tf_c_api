@@ -43,3 +43,6 @@ target_link_libraries(tensor_info tensorflow)
 
 configure_file(models/graph.pb ${CMAKE_CURRENT_BINARY_DIR}/graph.pb COPYONLY)
 configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
+
+enable_testing()
+add_subdirectory(test)
