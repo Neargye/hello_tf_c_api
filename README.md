@@ -6,9 +6,7 @@
 [![License](https://img.shields.io/github/license/Neargye/hello_tf_win_c_api.svg)](LICENSE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/65a8401ec7da4ff49a9d4603dfbb600a)](https://www.codacy.com/app/Neargye/hello_tf_win_c_api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/hello_tf_win_c_api&amp;utm_campaign=Badge_Grade)
 
-Example how to run TensorFlow C API on Windows.
-
-P.S. Code from examples can work on other platforms.
+Example how to run TensorFlow lib C API on Windows, Linux and macOS(darwin).
 
 ## [Example](src/)
 
@@ -22,25 +20,36 @@ P.S. Code from examples can work on other platforms.
 
 ## Build example
 
+### Windows
+
 ```text
 mkdir build
 cd build
-cmake .. -G "Visual Studio 15 2017 Win64" # or other versions Visual Studio
-cmake --build . --config Debug
+cmake .. -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+```
+
+### Linux and macOS(darwin)
+
+```text
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
 ```
 
 ### Remarks
 
-* The tensorflow.dll in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
-* Make sure that the tensorflow.dll is in Output Directory (by default, this is Debug\Release under your project's folder) or either in the directory contained by the %PATH% environment variable.
+* The tensorflow in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
+* Make sure that the tensorflow lib is in Output Directory or either in the directory contained by the %PATH% environment variable.
 
-## Get tensorflow.dll
+## Get tensorflow lib
 
-For x64 CPU, you can download the tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
+For x64 CPU, you can download the tensorflow.so, tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
 
-Or build dll which version you need from the sources, with CPU or GPU support.
+Or build lib which version you need from the sources, with CPU or GPU support.
 
-### Create .lib file from .dll
+### Create .lib file from .dll for windows
 
 Open the Visual Studio Command Prompt, you find its shortcut in "Start"->"Programs"->"Microsoft Visual Studio"->"Tools". Now run the dumpbin command to get a list of all exported functions of your dll:
 
@@ -93,12 +102,12 @@ lib /def:yourpath/tensorflow.def /OUT:yourpath/tensorflow.lib /MACHINE:X64
 
 /MACHINE:X64 - fow x64 build, and /MACHINE:X86 for x32 build.
 
-### Link tensorflow.dll
+### Link tensorflow lib
 
 #### CMakeLists.txt
 
 ```text
-link_directories(yourpath/to/tensorflow) # path to tensorflow.dll and tensorflow.lib
+link_directories(yourpath/to/tensorflow) # path to tensorflow lib
 ... # other
 target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE> tensorflow)
 ```

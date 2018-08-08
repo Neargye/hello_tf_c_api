@@ -1,0 +1,285 @@
+os: linux
+dist: trusty
+
+sudo: required
+
+language: cpp
+
+git:
+  depth: 1
+
+matrix:
+  fast_finish: false
+  include:
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.8
+      env:
+        - CXX_COMPILER=g++-4.8 CC_COMPILER=gcc-4.8 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+      env:
+        - CXX_COMPILER=g++-4.9 CC_COMPILER=gcc-4.9 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      env:
+        - CXX_COMPILER=g++-5 CC_COMPILER=gcc-5 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+      env:
+        - CXX_COMPILER=g++-6 CC_COMPILER=gcc-6 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - CXX_COMPILER=g++-7 CC_COMPILER=gcc-7 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-8
+      env:
+        - CXX_COMPILER=g++-8 CC_COMPILER=gcc-8 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+      env:
+        - CXX_COMPILER=clang++-3.6 CC_COMPILER=clang-3.6 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      env:
+        - CXX_COMPILER=clang++-3.7 CC_COMPILER=clang-3.7 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.8
+          packages:
+            - clang-3.8
+      env:
+        - CXX_COMPILER=clang++-3.8 CC_COMPILER=clang-3.8 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-3.9
+          packages:
+            - clang-3.9
+      env:
+        - CXX_COMPILER=clang++-3.9 CC_COMPILER=clang-3.9 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+      env:
+        - CXX_COMPILER=clang++-4.0 CC_COMPILER=clang-4.0 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+      env:
+        - CXX_COMPILER=clang++-5.0 CC_COMPILER=clang-5.0 CONFIGURATION=Debug
+
+    - os: linux
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-6.0
+          packages:
+            - clang-6.0
+      env:
+        - CXX_COMPILER=clang++-6.0 CC_COMPILER=clang-6.0 CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode7.0
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode7.1
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode7.2
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode7.3
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode8.0
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode8.1
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode8.2
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode8.3
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode9.0
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode9.1
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode9.2
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode9.3
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+    - os: osx
+      compiler: clang++
+      osx_image: xcode9.4
+      env:
+        - CXX_COMPILER=clang++ CC_COMPILER=clang CONFIGURATION=Debug
+
+install:
+  - export CC=${CC_COMPILER}
+  - export CXX=${CXX_COMPILER}
+  - JOBS=2 # Travis machines have 2 cores.
+  - |
+    # If linux and clang install the right version of libc++.
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -n "$(ls -A ${LLVM_INSTALL})" ]]; then
+      LLVM_INSTALL=${DEPS_DIR}/llvm/install
+      if   [[ "${CXX}" == "clang++-3.5" ]]; then LLVM_VERSION="3.5.2";
+      elif [[ "${CXX}" == "clang++-3.6" ]]; then LLVM_VERSION="3.6.2";
+      elif [[ "${CXX}" == "clang++-3.7" ]]; then LLVM_VERSION="3.7.1";
+      elif [[ "${CXX}" == "clang++-3.8" ]]; then LLVM_VERSION="3.8.1";
+      elif [[ "${CXX}" == "clang++-3.9" ]]; then LLVM_VERSION="3.9.1";
+      elif [[ "${CXX}" == "clang++-4.0" ]]; then LLVM_VERSION="4.0.1";
+      elif [[ "${CXX}" == "clang++-5.0" ]]; then LLVM_VERSION="5.0.2";
+      elif [[ "${CXX}" == "clang++-6.0" ]]; then LLVM_VERSION="6.0.1";
+      fi
+      LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
+      LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
+      LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
+      mkdir -p llvm llvm/build llvm/projects/libcxx llvm/projects/libcxxabi
+      travis_retry wget -O - ${LLVM_URL} | tar --strip-components=1 -xJ -C llvm
+      travis_retry wget -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx
+      travis_retry wget -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
+      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
+      (cd llvm/build/projects/libcxx && sudo make install -j${JOBS})
+      (cd llvm/build/projects/libcxxabi && sudo make install -j${JOBS})
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
+    fi
+
+before_script:
+  - rm -rf build
+  - mkdir -p build
+  - cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=${CONFIGURATION}
+
+script:
+  - cmake --build . --config ${CONFIGURATION} -- -j${JOBS}
+  - ctest -V --output-on-failure -С ${CONFIGURATION} -j${JOBS}
+
+notifications:
+  email: false
