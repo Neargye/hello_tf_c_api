@@ -107,4 +107,4 @@ target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE> tensorflow)
 
 Make sure that the tensorflow.dll is in Output Directory (by default, this is Debug\Release under your project's folder) or either in the directory contained by the %PATH% environment variable.
 
-## Licensed under the [Unlicense](LICENSE)
+## Licensed under the [MIT License](LICENSE)
