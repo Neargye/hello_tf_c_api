@@ -2,6 +2,7 @@
 
 ![Example TensorFlow C API logo](logo.png)
 
+[![Build Status](https://travis-ci.org/Neargye/hello_tf_win_c_api.svg?branch=master)](https://travis-ci.org/Neargye/hello_tf_win_c_api)
 [![Build status](https://ci.appveyor.com/api/projects/status/vmp61qk96clboeds/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-win-c-api/branch/master)
 [![License](https://img.shields.io/github/license/Neargye/hello_tf_win_c_api.svg)](LICENSE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/65a8401ec7da4ff49a9d4603dfbb600a)](https://www.codacy.com/app/Neargye/hello_tf_win_c_api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/hello_tf_win_c_api&amp;utm_campaign=Badge_Grade)
