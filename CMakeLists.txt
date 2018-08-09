@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     add_compile_options(-Wall -Wextra -pedantic)
+    set(CMAKE_VERBOSE_MAKEFILE ON)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(/W4)
     check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
@@ -44,10 +45,10 @@ if(UNIX AND NOT APPLE)
 
     link_directories(${CMAKE_SOURCE_DIR}/tensorflow/linux/lib)
 elseif(APPLE)
-    if (NOT EXISTS tensorflow/darwin)
-        make_directory(tensorflow/darwin)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin)
+        make_directory(${CMAKE_SOURCE_DIR}/tensorflow/darwin)
     endif()
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux/darwin/libtensorflow.so)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin/lib/libtensorflow.so)
         file(
         DOWNLOAD
             https://github.com/Neargye/tensorflow/releases/download/v1.8.0/libtensorflow-cpu-darwin-x86_64-1.8.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
@@ -62,8 +63,8 @@ elseif(APPLE)
             message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
         endif()
 
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/linux)
-        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/darwin)
+        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz)
     endif()
 
     link_directories(tensorflow/darwin/lib)
