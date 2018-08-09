@@ -17,6 +17,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     endif()
 endif()
 
+if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
+    make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
+endif()
+
 if(UNIX AND NOT APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux)
         make_directory(${CMAKE_SOURCE_DIR}/tensorflow/linux)

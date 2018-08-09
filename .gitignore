@@ -1,4 +1,6 @@
 build/
+tensorflow/
+models/
 
 ### cpp gitignore ###
 # Prerequisites
