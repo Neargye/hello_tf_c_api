@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/Neargye/hello_tf_win_c_api.svg)](LICENSE)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/65a8401ec7da4ff49a9d4603dfbb600a)](https://www.codacy.com/app/Neargye/hello_tf_win_c_api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/hello_tf_win_c_api&amp;utm_campaign=Badge_Grade)
 
-Example how to run TensorFlow lib C API on Windows, Linux and macOS(darwin).
+Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 
 ## [Example](src/)
 
@@ -30,7 +30,7 @@ cmake .. -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
 ```
 
-### Linux and macOS(darwin)
+### Linux and macOS(Darwin)
 
 ```text
 mkdir build
