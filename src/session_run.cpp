@@ -85,18 +85,21 @@ int main() {
                 );
 
   if (TF_GetCode(status) != TF_OK) {
+    std::cout << "Error run session";
     TF_DeleteStatus(status);
     return 5;
   }
 
   TF_CloseSession(sess, status);
   if (TF_GetCode(status) != TF_OK) {
+    std::cout << "Error close session";
     TF_DeleteStatus(status);
     return 6;
   }
 
   TF_DeleteSession(sess, status);
   if (TF_GetCode(status) != TF_OK) {
+    std::cout << "Error delete session";
     TF_DeleteStatus(status);
     return 7;
   }
@@ -107,8 +110,6 @@ int main() {
 
   TF_DeleteTensor(input_tensor);
   TF_DeleteTensor(output_tensor);
-  TF_CloseSession(sess, status);
-  TF_DeleteSession(sess, status);
   TF_DeleteGraph(graph);
   TF_DeleteStatus(status);
 

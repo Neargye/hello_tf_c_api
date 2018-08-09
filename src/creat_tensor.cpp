@@ -63,9 +63,7 @@ int main() {
     std::cout << "Wrong tensor type" << std::endl;
   }
 
-  if (TF_NumDims(tensor) != dims.size())
-
-  {
+  if (TF_NumDims(tensor) != dims.size()) {
     std::cout << "Wrong number of dimensions" << std::endl;
   }
 
@@ -74,6 +72,7 @@ int main() {
       std::cout << "Wrong dimension size for dim: " << i << std::endl;
     }
   }
+
   if (TF_TensorByteSize(tensor) != size) {
     std::cout << "Wrong tensor byte size" << std::endl;
   }
