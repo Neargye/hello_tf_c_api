@@ -26,7 +26,7 @@
 #include <iostream>
 
 int main() {
-  std::cout<< "TensorFlow Version: " << TF_Version() << std::endl;
+  std::cout << "TensorFlow Version: " << TF_Version() << std::endl;
 
   return 0;
 }
