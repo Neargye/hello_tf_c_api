@@ -95,6 +95,7 @@ elseif(WIN32)
     include_directories(${CMAKE_SOURCE_DIR}/tensorflow/windows/include/tensorflow/c)
     link_directories(tensorflow/windows/lib)
     configure_file(tensorflow/windows/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
+    configure_file(tensorflow/windows/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/test/tensorflow.dll COPYONLY)
 endif()
 
 add_executable(hello_tf src/hello_tf.cpp)
