@@ -22,6 +22,13 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
-TEST_CASE("TODO") {
-  REQUIRE(true != false);
+#if defined(_MSC_VER) && !defined(COMPILER_MSVC)
+#  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
+#endif
+#include <c_api.h> // TensorFlow C API header
+
+#include <iostream>
+
+TEST_CASE("Hello TF C API") {
+  std::cout << "TensorFlow Version: " << TF_Version() << std::endl;
 }
