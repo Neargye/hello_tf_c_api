@@ -123,6 +123,9 @@ target_link_libraries(creat_tensor tensorflow)
 add_executable(tensor_info src/tensor_info.cpp src/tf_utils.cpp src/tf_utils.hpp)
 target_link_libraries(tensor_info tensorflow)
 
+add_executable(allocate_tensor src/allocate_tensor.cpp)
+target_link_libraries(allocate_tensor tensorflow)
+
 configure_file(models/graph.pb ${CMAKE_CURRENT_BINARY_DIR}/graph.pb COPYONLY)
 
 enable_testing()
