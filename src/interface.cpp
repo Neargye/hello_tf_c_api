@@ -47,7 +47,7 @@ int main() {
     return 2;
   }
 
-  const std::array<std::int64_t, 3> input_dims = {1, 5, 12};
+  const std::array<std::int64_t, 3> input_dims = {{1, 5, 12}} ;
   std::size_t input_vals_size = sizeof(float);
   for (auto i : input_dims) {
     input_vals_size *= i;
