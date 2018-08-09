@@ -17,8 +17,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     endif()
 endif()
 
-include_directories(tensorflow/include)
-
 if(UNIX AND NOT APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux)
         make_directory(${CMAKE_SOURCE_DIR}/tensorflow/linux)
@@ -27,7 +25,7 @@ if(UNIX AND NOT APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux/lib/libtensorflow.so)
         file(
         DOWNLOAD
-            https://github.com/Neargye/tensorflow/releases/download/v1.8.0/libtensorflow-cpu-linux-x86_64-1.8.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
+            https://github.com/Neargye/tensorflow/releases/download/v1.9.0/libtensorflow-cpu-linux-x86_64-1.9.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
         STATUS
             status
         LOG
@@ -43,6 +41,7 @@ if(UNIX AND NOT APPLE)
         file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz)
     endif()
 
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/linux/include/tensorflow/c)
     link_directories(${CMAKE_SOURCE_DIR}/tensorflow/linux/lib)
 elseif(APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin)
@@ -51,7 +50,7 @@ elseif(APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin/lib/libtensorflow.so)
         file(
         DOWNLOAD
-            https://github.com/Neargye/tensorflow/releases/download/v1.8.0/libtensorflow-cpu-darwin-x86_64-1.8.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
+            https://github.com/Neargye/tensorflow/releases/download/v1.9.0/libtensorflow-cpu-darwin-x86_64-1.9.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
         STATUS
             status
         LOG
@@ -67,8 +66,33 @@ elseif(APPLE)
         file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz)
     endif()
 
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/darwin/include/tensorflow/c)
     link_directories(tensorflow/darwin/lib)
 elseif(WIN32)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/windows)
+        make_directory(${CMAKE_SOURCE_DIR}/tensorflow/windows)
+    endif()
+
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/windows/lib/tensorflow.dll)
+        file(
+        DOWNLOAD
+            https://github.com/Neargye/tensorflow/releases/download/v1.9.0/libtensorflow-cpu-windows-x86_64-1.9.0.zip ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip
+        STATUS
+            status
+        LOG
+            log
+        )
+        list(GET status 0 status_code)
+        list(GET status 1 status_string)
+        if(NOT status_code EQUAL 0)
+            message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
+        endif()
+
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/windows)
+        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip)
+    endif()
+
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/windows/include/tensorflow/c)
     link_directories(tensorflow/windows/lib)
     configure_file(tensorflow/windows/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
 endif()
