@@ -37,7 +37,7 @@ static void DeallocateTensor(void* data, std::size_t, void*) {
 }
 
 int main() {
-  const std::array<std::int64_t, 3> dims = {1, 5, 12};
+  const std::array<std::int64_t, 3> dims = {{1, 5, 12}};
   std::size_t size = sizeof(float);
   for (auto i : dims) {
     size *= i;
