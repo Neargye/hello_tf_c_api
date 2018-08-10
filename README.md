@@ -11,9 +11,10 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 ## [Example](src/)
 
 * [Hello TF](src/hello_tf.cpp)
-* [Creat Tensor](src/creat_tensor.cpp)
-* [Run session](src/session_run.cpp)
 * [Load graph](src/load_graph.cpp)
+* [Create Tensor](src/create_tensor.cpp)
+* [Allocate Tensor](src/allocate_tensor.cpp)
+* [Run session](src/session_run.cpp)
 * [Interface](src/interface.cpp)
 * [Tensor Info](src/tensor_info.cpp)
 * [Graph Info](src/graph_info.cpp)
@@ -23,6 +24,8 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 ### Windows
 
 ```text
+git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
+cd hello_tf_c_api
 mkdir build
 cd build
 cmake .. -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release
@@ -32,6 +35,8 @@ cmake --build . --config Release
 ### Linux and macOS(Darwin)
 
 ```text
+git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
+cd hello_tf_c_api
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
