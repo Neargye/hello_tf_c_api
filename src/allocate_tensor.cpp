@@ -30,9 +30,11 @@
 #endif
 
 #include <c_api.h> // TensorFlow C API header
+#include <cstring>
 #include <array>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 int main() {
   const std::array<std::int64_t, 3> dims = {{1, 5, 12}};
@@ -54,7 +56,7 @@ int main() {
                                         data_size);
 
   if (tensor != nullptr && TF_TensorData(tensor) != nullptr) {
-    std::memcpy(TF_TensorData(tensor), data.data(), data_size);
+    std::memcpy(TF_TensorData(tensor), data.data(), std::min(data_size, TF_TensorByteSize(tensor)));
   } else {
     std::cout << "Wrong creat tensor" << std::endl;
     return 1;

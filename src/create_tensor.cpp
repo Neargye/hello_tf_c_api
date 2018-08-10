@@ -71,7 +71,7 @@ int main() {
     return 2;
   }
 
-  if (TF_NumDims(tensor) != dims.size()) {
+  if (TF_NumDims(tensor) != static_cast<int>(dims.size())) {
     std::cout << "Wrong number of dimensions" << std::endl;
     return 3;
   }

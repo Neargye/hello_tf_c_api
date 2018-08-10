@@ -27,6 +27,7 @@
 #include "tf_utils.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 
 namespace tf_utils {
