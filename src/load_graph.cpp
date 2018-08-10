@@ -22,38 +22,40 @@
 #if defined(_MSC_VER) && !defined(COMPILER_MSVC)
 #  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
 #endif
+
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 4996)
+#  pragma warning(disable : 4190)
+#endif
+
 #include <c_api.h> // TensorFlow C API header
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable : 4996)
-#endif
-
 static void DeallocateBuffer(void* data, size_t) {
-  free(data);
+  std::free(data);
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
-  FILE* f = fopen(file, "rb");
+  const auto f = std::fopen(file, "rb");
   if (f == nullptr) {
     return nullptr;
   }
 
-  fseek(f, 0, SEEK_END);
-  const long fsize = ftell(f);
-  fseek(f, 0, SEEK_SET);
+  std::fseek(f, 0, SEEK_END);
+  const auto fsize = ftell(f);
+  std::fseek(f, 0, SEEK_SET);
 
   if (fsize < 1) {
-    fclose(f);
+    std::fclose(f);
     return nullptr;
   }
 
-  void* data = malloc(fsize);
-  fread(data, fsize, 1, f);
-  fclose(f);
+  const auto data = std::malloc(fsize);
+  std::fread(data, fsize, 1, f);
+  std::fclose(f);
 
   TF_Buffer* buf = TF_NewBuffer();
   buf->data = data;
@@ -92,3 +94,7 @@ int main() {
 
   return 0;
 }
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif

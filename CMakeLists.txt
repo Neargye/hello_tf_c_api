@@ -117,8 +117,8 @@ target_link_libraries(interface tensorflow)
 add_executable(graph_info src/graph_info.cpp src/tf_utils.cpp src/tf_utils.hpp)
 target_link_libraries(graph_info tensorflow)
 
-add_executable(creat_tensor src/creat_tensor.cpp)
-target_link_libraries(creat_tensor tensorflow)
+add_executable(create_tensor src/create_tensor.cpp)
+target_link_libraries(create_tensor tensorflow)
 
 add_executable(tensor_info src/tensor_info.cpp src/tf_utils.cpp src/tf_utils.hpp)
 target_link_libraries(tensor_info tensorflow)

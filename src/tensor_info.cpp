@@ -19,10 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(_MSC_VER) && !defined(COMPILER_MSVC)
-#  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
-#endif
-#include <c_api.h> // TensorFlow C API header
 #include "tf_utils.hpp"
 #include <iostream>
 #include <vector>
@@ -147,7 +143,7 @@ void PrintTensorInfo(TF_Graph *graph, const char *layer_name) {
 }
 
 int main() {
-  TF_Graph *graph = LoadGraphDef("graph.pb");
+  TF_Graph *graph = tf_utils::LoadGraphDef("graph.pb");
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;

@@ -22,6 +22,13 @@
 #if defined(_MSC_VER) && !defined(COMPILER_MSVC)
 #  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
 #endif
+
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 4996)
+#  pragma warning(disable : 4190)
+#endif
+
 #include <c_api.h> // TensorFlow C API header
 #include <iostream>
 
@@ -30,3 +37,7 @@ int main() {
 
   return 0;
 }
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
