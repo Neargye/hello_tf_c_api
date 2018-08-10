@@ -25,10 +25,18 @@
 #if defined(_MSC_VER) && !defined(COMPILER_MSVC)
 #  define COMPILER_MSVC // Set MSVC visibility of exported symbols in the shared library.
 #endif
+
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable : 4190)
+#endif
+
 #include <c_api.h> // TensorFlow C API header
 
-#include <iostream>
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 TEST_CASE("Hello TF C API") {
-  std::cout << "TensorFlow Version: " << TF_Version() << std::endl;
+  REQUIRE(std::string(TF_Version()) == std::string("1.9.0"));
 }
