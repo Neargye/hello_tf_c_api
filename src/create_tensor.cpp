@@ -41,11 +41,13 @@ static void DeallocateTensor(void* data, std::size_t, void*) {
 
 int main() {
   const std::vector<std::int64_t> dims = {1, 5, 12};
-  std::size_t size = sizeof(float);
+  std::size_t data_size = sizeof(float);
   for (auto i : dims) {
-    size *= i;
+    data_size *= i;
   }
-  auto data = static_cast<float*>(std::malloc(size));
+
+  auto data = static_cast<float*>(std::malloc(data_size));
+
   std::vector<float> vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
@@ -58,7 +60,7 @@ int main() {
 
   TF_Tensor* tensor = TF_NewTensor(TF_FLOAT,
                                    dims.data(), static_cast<int>(dims.size()),
-                                   data, size,
+                                   data, data_size,
                                    DeallocateTensor, nullptr);
 
   if (tensor == nullptr) {
@@ -76,14 +78,14 @@ int main() {
     return 3;
   }
 
-  for (std::size_t i = 0; i < dims.size(); i++) {
+  for (std::size_t i = 0; i < dims.size(); ++i) {
     if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
       std::cout << "Wrong dimension size for dim: " << i << std::endl;
       return 4;
     }
   }
 
-  if (TF_TensorByteSize(tensor) != size) {
+  if (TF_TensorByteSize(tensor) != data_size) {
     std::cout << "Wrong tensor byte size" << std::endl;
     return 5;
   }

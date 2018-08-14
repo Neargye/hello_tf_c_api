@@ -65,6 +65,10 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors);
 template <typename T>
 std::vector<T> TensorData(const TF_Tensor* tensor) {
   const auto data = static_cast<T*>(TF_TensorData(tensor));
+  if (data == nullptr) {
+    return {};
+  }
+
   return {data, data + (TF_TensorByteSize(tensor) / TF_DataTypeSize(TF_TensorType(tensor)))};
 }
 

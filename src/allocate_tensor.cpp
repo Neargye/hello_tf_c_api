@@ -37,13 +37,13 @@
 #include <algorithm>
 
 int main() {
-  const std::array<std::int64_t, 3> dims = {{1, 5, 12}};
+  const std::vector<int64_t> dims = {1, 5, 12};
   std::size_t data_size = sizeof(float);
   for (auto i : dims) {
     data_size *= i;
   }
 
-  std::vector<float> data = {
+  const std::vector<float> data = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
     -0.4809143f, -0.3773398f, 0.1746384f, 0.7719052f, -0.4067171f, 0.0111654f, 0.0054433f, 0.9134697f, 0.7192584f, -0.0399981f, 0.1177435f, -0.6835230f,
@@ -67,12 +67,12 @@ int main() {
     return 2;
   }
 
-  if (TF_NumDims(tensor) != dims.size()) {
+  if (TF_NumDims(tensor) != static_cast<int>(dims.size())) {
     std::cout << "Wrong number of dimensions" << std::endl;
     return 3;
   }
 
-  for (std::size_t i = 0; i < dims.size(); i++) {
+  for (std::size_t i = 0; i < dims.size(); ++i) {
     if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
       std::cout << "Wrong dimension size for dim: " << i << std::endl;
       return 4;

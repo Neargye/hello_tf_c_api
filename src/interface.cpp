@@ -30,14 +30,7 @@ int main() {
     return 1;
   }
 
-  const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
-  if (input_ops[0].oper == nullptr) {
-    std::cout << "Can't init input_op" << std::endl;
-    return 2;
-  }
-
   const std::vector<std::int64_t> input_dims = {1, 5, 12};
-
   const std::vector<float> input_vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
     -0.4810135f, -0.3772099f, 0.1745346f, 0.7719303f, -0.4066443f, 0.0114614f, 0.0051195f, 0.9135003f, 0.7196983f, -0.0400035f, 0.1178188f, -0.6830465f,
@@ -46,14 +39,10 @@ int main() {
     -0.4807833f, -0.3775733f, 0.1748378f, 0.7718275f, -0.4073670f, 0.0107582f, 0.0062978f, 0.9131795f, 0.7187147f, -0.0394935f, 0.1184392f, -0.6840039f,
   };
 
+  const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
   const std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals)};
 
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
-  if (input_ops[0].oper == nullptr) {
-    std::cout << "Can't init out_op" << std::endl;
-    return 3;
-  }
-
   std::vector<TF_Tensor*> output_tensors = {nullptr};
 
   const bool success = tf_utils::RunSession(graph,
@@ -66,7 +55,7 @@ int main() {
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
     std::cout << "Error run session";
-    return 4;
+    return 2;
   }
 
   tf_utils::DeleteTensors(input_tensors);

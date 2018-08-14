@@ -67,6 +67,10 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 } // namespace tf_utils::
 
 TF_Graph* LoadGraphDef(const char* file) {
+  if (file == nullptr) {
+    return nullptr;
+  }
+
   TF_Buffer* buffer = ReadBufferFromFile(file);
   if (buffer == nullptr) {
     return nullptr;
@@ -93,6 +97,12 @@ TF_Graph* LoadGraphDef(const char* file) {
 bool RunSession(TF_Graph* graph,
                 const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
                 const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs) {
+  if (graph == nullptr ||
+      inputs == nullptr || input_tensors == nullptr ||
+      outputs == nullptr || output_tensors == nullptr) {
+    return false;
+  }
+
   TF_Status* status = TF_NewStatus();
   TF_SessionOptions* options = TF_NewSessionOptions();
   TF_Session* sess = TF_NewSession(graph, options, status);
@@ -149,6 +159,10 @@ bool RunSession(TF_Graph* graph,
 TF_Tensor* CreateTensor(TF_DataType data_type,
                         const std::int64_t* dims, std::size_t num_dims,
                         const void* data, std::size_t len) {
+  if (dims == nullptr || data == nullptr) {
+    return nullptr;
+  }
+
   TF_Tensor* tensor = TF_AllocateTensor(data_type, dims, static_cast<int>(num_dims), len);
   if (tensor == nullptr) {
     return nullptr;
@@ -166,7 +180,10 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
 }
 
 void DeleteTensor(TF_Tensor* tensor) {
-    TF_DeleteTensor(tensor);
+  if (tensor == nullptr) {
+    return;
+  }
+  TF_DeleteTensor(tensor);
 }
 
 void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {

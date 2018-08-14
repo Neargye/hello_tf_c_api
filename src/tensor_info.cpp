@@ -91,7 +91,7 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
   const int num_outputs = TF_OperationNumOutputs(op);
   TF_Status *status = TF_NewStatus();
 
-  for (int i = 0; i < num_outputs; i++) {
+  for (int i = 0; i < num_outputs; ++i) {
     const TF_Output output = {op, i};
     const TF_DataType type = TF_OperationOutputType(output);
     const int num_dims = TF_GraphGetTensorNumDims(graph, output, status);

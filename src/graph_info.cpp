@@ -116,7 +116,7 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
     }
 
     std::cout << " dims: " << num_dims << " [";
-    for (int j = 0; j < num_dims; j++) {
+    for (int j = 0; j < num_dims; ++j) {
       std::cout << dims[j];
       if (j < num_dims - 1) {
         std::cout << ",";
