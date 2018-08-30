@@ -28,8 +28,8 @@ git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
-cmake .. -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
+cmake -G "Visual Studio 15 2017" -A x64 ..
+cmake --build . --config Debug
 ```
 
 ### Linux and macOS(Darwin)
@@ -39,12 +39,13 @@ git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
+cmake -G "Unix Makefiles" ..
+cmake --build .
 ```
 
 ### Remarks
 
+* After the build, you can find the TensorFlow lib in the folder hello_tf_c_api/tensorflow/lib, and header in hello_tf_c_api/tensorflow/include.
 * The tensorflow in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
 * Make sure that the tensorflow lib is in Output Directory or either in the directory contained by the %PATH% environment variable.
 
