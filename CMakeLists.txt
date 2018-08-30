@@ -22,11 +22,11 @@ if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
 endif()
 
 if(UNIX AND NOT APPLE)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow/linux)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
+        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
     endif()
 
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/linux/lib/libtensorflow.so)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
         file(
         DOWNLOAD
             https://github.com/Neargye/tensorflow/releases/download/v1.10.0/libtensorflow-cpu-linux-x86_64-1.10.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
@@ -41,17 +41,17 @@ if(UNIX AND NOT APPLE)
             message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
         endif()
 
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/linux)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
         file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz)
     endif()
 
-    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/linux/include/tensorflow/c)
-    link_directories(${CMAKE_SOURCE_DIR}/tensorflow/linux/lib)
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/include/tensorflow/c)
+    link_directories(${CMAKE_SOURCE_DIR}/tensorflow/lib)
 elseif(APPLE)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow/darwin)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
+        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
     endif()
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/darwin/lib/libtensorflow.so)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
         file(
         DOWNLOAD
             https://github.com/Neargye/tensorflow/releases/download/v1.10.0/libtensorflow-cpu-darwin-x86_64-1.10.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
@@ -66,18 +66,18 @@ elseif(APPLE)
             message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
         endif()
 
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/darwin)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
         file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz)
     endif()
 
-    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/darwin/include/tensorflow/c)
-    link_directories(tensorflow/darwin/lib)
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/include/tensorflow/c)
+    link_directories(tensorflow/lib)
 elseif(WIN32)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/windows)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow/windows)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
+        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
     endif()
 
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/windows/lib/tensorflow.dll)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/tensorflow.dll)
         file(
         DOWNLOAD
             https://github.com/Neargye/tensorflow/releases/download/v1.10.0/libtensorflow-cpu-windows-x86_64-1.10.0.zip ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip
@@ -92,14 +92,14 @@ elseif(WIN32)
             message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
         endif()
 
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow/windows)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
         file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip)
     endif()
 
-    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/windows/include/tensorflow/c)
-    link_directories(tensorflow/windows/lib)
-    configure_file(tensorflow/windows/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
-    configure_file(tensorflow/windows/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/test/tensorflow.dll COPYONLY)
+    include_directories(${CMAKE_SOURCE_DIR}/tensorflow/include/tensorflow/c)
+    link_directories(tensorflow/lib)
+    configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
+    configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/test/tensorflow.dll COPYONLY)
 endif()
 
 add_executable(hello_tf src/hello_tf.cpp)
