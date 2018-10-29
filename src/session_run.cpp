@@ -51,7 +51,7 @@ int main() {
                                                    input_vals.data(), input_vals.size() * sizeof(float));
 
   TF_Output out_op = {TF_GraphOperationByName(graph, "output_node0"), 0};
-  if (input_op.oper == nullptr) {
+  if (out_op.oper == nullptr) {
     std::cout << "Can't init out_op" << std::endl;
     return 3;
   }
