@@ -107,6 +107,13 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
       continue;
     }
 
+    std::cout << " dims: " << num_dims;
+
+    if (num_dims <= 0) {
+      std::cout << " []" << std::endl;;
+      continue;
+    }
+
     std::vector<std::int64_t> dims(num_dims);
     TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
 
@@ -115,7 +122,7 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
       continue;
     }
 
-    std::cout << " dims: " << num_dims << " [";
+    std::cout << " [";
     for (int j = 0; j < num_dims; ++j) {
       std::cout << dims[j];
       if (j < num_dims - 1) {
