@@ -101,6 +101,13 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
       continue;
     }
 
+    std::cout << " dims: " << num_dims;
+
+    if (num_dims <= 0) {
+      std::cout << " []" << std::endl;;
+      continue;
+    }
+
     std::vector<std::int64_t> dims(num_dims);
 
     std::cout << "Output: " << i << " type: " << TFDataTypeToString(type);
@@ -111,7 +118,7 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
       continue;
     }
 
-    std::cout << " dims: " << num_dims << " [";
+    std::cout << " [";
     for (int d = 0; d < num_dims; ++d) {
       std::cout << dims[d];
       if (d < num_dims - 1) {
