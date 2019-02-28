@@ -1,5 +1,5 @@
-﻿cmake_minimum_required(VERSION 3.2)
-include(CheckCXXCompilerFlag)
+﻿cmake_minimum_required(VERSION 3.6)
+
 project(hello_tf)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -7,12 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-    add_compile_options(-Wall -Wextra -pedantic)
     set(CMAKE_VERBOSE_MAKEFILE ON)
+    add_compile_options(-Wall -Wextra -pedantic-errors)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(/W4)
-    check_cxx_compiler_flag(/permissive HAS_PERMISSIVE_FLAG)
-    if(HAS_PERMISSIVE_FLAG)
+    if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.11)
         add_compile_options(/permissive-)
     endif()
 endif()
