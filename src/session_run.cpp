@@ -24,7 +24,7 @@
 #include <vector>
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraphDef("graph.pb");
+  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
@@ -101,9 +101,9 @@ int main() {
 
   std::cout << "Output vals: " << data[0] << ", " << data[1] << ", " << data[2] << ", " << data[3] << std::endl;
 
-  TF_DeleteTensor(input_tensor);
-  TF_DeleteTensor(output_tensor);
-  TF_DeleteGraph(graph);
+  tf_utils::DeleteGraph(graph);
+  tf_utils::DeleteTensor(input_tensor);
+  tf_utils::DeleteTensor(output_tensor);
   TF_DeleteStatus(status);
 
   return 0;

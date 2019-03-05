@@ -35,15 +35,21 @@
 
 namespace tf_utils {
 
-TF_Graph* LoadGraphDef(const char* file);
+TF_Graph* LoadGraph(const char* graphPath);
 
-bool RunSession(TF_Graph* graph,
-                const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
-                const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs);
+void DeleteGraph(TF_Graph* graph);
 
-bool RunSession(TF_Graph* graph,
-                const std::vector<TF_Output>& inputs, const std::vector<TF_Tensor*>& input_tensors,
-                const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors);
+TF_Session* CreateSession(TF_Graph* graph);
+
+void DeleteSession(TF_Session* session);
+
+TF_Code RunSession(TF_Session* session,
+                   const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
+                   const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs);
+
+TF_Code RunSession(TF_Session* session,
+                   const std::vector<TF_Output>& inputs, const std::vector<TF_Tensor*>& input_tensors,
+                   const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors);
 
 TF_Tensor* CreateTensor(TF_DataType data_type,
                         const std::int64_t* dims, std::size_t num_dims,

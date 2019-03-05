@@ -24,7 +24,7 @@
 #include <vector>
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraphDef("graph.pb");
+  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
@@ -45,22 +45,26 @@ int main() {
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
   std::vector<TF_Tensor*> output_tensors = {nullptr};
 
-  const bool success = tf_utils::RunSession(graph,
-                                            input_ops, input_tensors,
-                                            out_ops, output_tensors);
+  TF_Session* session = tf_utils::CreateSession(graph);
+  if (session == nullptr) {
+    std::cout << "Can't create session" << std::endl;
+    return 2;
+  }
 
-  if (success) {
+  const TF_Code code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
+
+  if (code == TF_OK) {
     const std::vector<std::vector<float>> data = tf_utils::TensorsData<float>(output_tensors);
     const std::vector<float> result = data[0];
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
-    std::cout << "Error run session";
-    return 2;
+    std::cout << "Error run session TF_CODE: " << code;
+    return code;
   }
 
   tf_utils::DeleteTensors(input_tensors);
   tf_utils::DeleteTensors(output_tensors);
-  TF_DeleteGraph(graph);
+  tf_utils::DeleteGraph(graph);
 
   return 0;
 }

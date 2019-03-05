@@ -156,7 +156,7 @@ void PrintOp(TF_Graph* graph) {
 }
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraphDef("graph.pb");
+  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
@@ -164,7 +164,7 @@ int main() {
 
   PrintOp(graph);
 
-  TF_DeleteGraph(graph);
+  tf_utils::DeleteGraph(graph);
 
   return 0;
 }
