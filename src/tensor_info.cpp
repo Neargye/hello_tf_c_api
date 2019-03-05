@@ -24,7 +24,7 @@
 #include <vector>
 #include <string>
 
-const char *TFDataTypeToString(TF_DataType data_type) {
+const char* TFDataTypeToString(TF_DataType data_type) {
   switch (data_type) {
   case TF_FLOAT:
     return "TF_FLOAT";
@@ -89,7 +89,7 @@ void PrintInputs(TF_Graph*, TF_Operation* op) {
 
 void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
   const int num_outputs = TF_OperationNumOutputs(op);
-  TF_Status *status = TF_NewStatus();
+  TF_Status* status = TF_NewStatus();
 
   for (int i = 0; i < num_outputs; ++i) {
     const TF_Output output = {op, i};
@@ -131,9 +131,9 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
   TF_DeleteStatus(status);
 }
 
-void PrintTensorInfo(TF_Graph *graph, const char *layer_name) {
+void PrintTensorInfo(TF_Graph* graph, const char* layer_name) {
   std::cout << "Tensor: " << layer_name;
-  TF_Operation *op = TF_GraphOperationByName(graph, layer_name);
+  TF_Operation* op = TF_GraphOperationByName(graph, layer_name);
 
   if (op == nullptr) {
     std::cout << "Could not get " << layer_name << std::endl;
@@ -150,7 +150,7 @@ void PrintTensorInfo(TF_Graph *graph, const char *layer_name) {
 }
 
 int main() {
-  TF_Graph *graph = tf_utils::LoadGraph("graph.pb");
+  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
