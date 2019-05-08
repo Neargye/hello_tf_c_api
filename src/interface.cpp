@@ -55,7 +55,7 @@ int main() {
   const TF_Code code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
 
   if (code == TF_OK) {
-    const std::vector<std::vector<float>> data = tf_utils::TensorsData<float>(output_tensors);
+    const std::vector<std::vector<float>> data = tf_utils::GetTensorsData<float>(output_tensors);
     const std::vector<float> result = data[0];
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {

@@ -57,9 +57,7 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
                         const void* data, std::size_t len);
 
 template <typename T>
-TF_Tensor* CreateTensor(TF_DataType data_type,
-                        const std::vector<std::int64_t>& dims,
-                        const std::vector<T>& data) {
+TF_Tensor* CreateTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, const std::vector<T>& data) {
   return CreateTensor(data_type,
                       dims.data(), dims.size(),
                       data.data(), data.size() * sizeof(T));
@@ -69,8 +67,15 @@ void DeleteTensor(TF_Tensor* tensor);
 
 void DeleteTensors(const std::vector<TF_Tensor*>& tensors);
 
+void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len);
+
 template <typename T>
-std::vector<T> TensorData(const TF_Tensor* tensor) {
+void SetTensorsData(TF_Tensor* tensor, std::vector<T> data) {
+  SetTensorsData(tensor, data.data(), data.size() * sizeof(T));
+}
+
+template <typename T>
+std::vector<T> GetTensorsData(const TF_Tensor* tensor) {
   const auto data = static_cast<T*>(TF_TensorData(tensor));
   if (data == nullptr) {
     return {};
@@ -80,11 +85,11 @@ std::vector<T> TensorData(const TF_Tensor* tensor) {
 }
 
 template <typename T>
-std::vector<std::vector<T>> TensorsData(const std::vector<TF_Tensor*>& tensors) {
+std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensors) {
   std::vector<std::vector<T>> data;
   data.reserve(tensors.size());
   for (const auto t : tensors) {
-    data.push_back(TensorData<T>(t));
+    data.push_back(GetTensorsData<T>(t));
   }
 
   return data;
