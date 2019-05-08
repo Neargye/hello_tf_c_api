@@ -26,10 +26,10 @@
 #endif
 
 #include "tf_utils.hpp"
-#include <cstdio>
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
+#include <fstream>
 
 namespace tf_utils {
 
@@ -39,23 +39,23 @@ static void DeallocateBuffer(void* data, size_t) {
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
-  const auto f = std::fopen(file, "rb");
-  if (f == nullptr) {
+  std::ifstream f(file, std::ios::binary);
+  if (f.fail() || !f.is_open()) {
     return nullptr;
   }
 
-  std::fseek(f, 0, SEEK_END);
-  const auto fsize = ftell(f);
-  std::fseek(f, 0, SEEK_SET);
+  f.seekg(0, std::ios::end);
+  const auto fsize = f.tellg();
+  f.seekg(0, std::ios::beg);
 
   if (fsize < 1) {
-    std::fclose(f);
+    f.close();
     return nullptr;
   }
 
-  const auto data = std::malloc(fsize);
-  std::fread(data, fsize, 1, f);
-  std::fclose(f);
+  char* data = static_cast<char*>(std::malloc(fsize));
+  f.read(data, fsize);
+  f.close();
 
   TF_Buffer* buf = TF_NewBuffer();
   buf->data = data;
