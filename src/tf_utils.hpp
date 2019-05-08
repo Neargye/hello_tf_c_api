@@ -70,7 +70,7 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors);
 void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len);
 
 template <typename T>
-void SetTensorsData(TF_Tensor* tensor, std::vector<T> data) {
+void SetTensorsData(TF_Tensor* tensor, const std::vector<T>& data) {
   SetTensorsData(tensor, data.data(), data.size() * sizeof(T));
 }
 
