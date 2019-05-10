@@ -73,6 +73,8 @@ Make sure that the tensorflow.dll is in Output Directory (by default, this is De
 
 ### [Here’s an example how prepare models](doc/prepare_models.md)
 
+To generated the graph.pb file need takes a graph definition and a set of checkpoints and freezes them together into a single file.
+
 ### [Here’s an example how create tensorflow.lib file from tensorflow.dll for windows](doc/create_lib_file_from_dll_for_windows.md)
 
 ## Licensed under the [MIT License](LICENSE)
