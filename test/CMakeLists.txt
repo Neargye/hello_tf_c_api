@@ -21,3 +21,5 @@ add_test(NAME create_tensor_test COMMAND create_tensor)
 add_test(NAME tensor_info_test COMMAND tensor_info)
 
 add_test(NAME allocate_tensor_test COMMAND allocate_tensor)
+
+add_test(NAME batch_interface_test COMMAND batch_interface)
