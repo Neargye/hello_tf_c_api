@@ -80,7 +80,7 @@ void SetTensorsData(TF_Tensor* tensor, const std::vector<T>& data) {
 
 template <typename T>
 std::vector<T> GetTensorsData(const TF_Tensor* tensor) {
-  void* data = static_cast<T*>(TF_TensorData(tensor));
+  auto data = static_cast<T*>(TF_TensorData(tensor));
   if (data == nullptr) {
     return {};
   }
