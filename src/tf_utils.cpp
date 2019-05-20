@@ -163,7 +163,7 @@ TF_Code RunSession(TF_Session* session,
 TF_Tensor* CreateTensor(TF_DataType data_type,
                         const std::int64_t* dims, std::size_t num_dims,
                         const void* data, std::size_t len) {
-  if (dims == nullptr || data == nullptr) {
+  if (dims == nullptr) {
     return nullptr;
   }
 
@@ -178,16 +178,25 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
     return nullptr;
   }
 
-  std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
+  if (data != nullptr) {
+    std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
+  }
 
   return tensor;
 }
 
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims){
+  return CreateTensor(data_type, dims, num_dims, nullptr, 0);
+}
+
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims) {
+  return CreateEmptyTensor(data_type, dims.data(), dims.size());
+}
+
 void DeleteTensor(TF_Tensor* tensor) {
-  if (tensor == nullptr) {
-    return;
+  if (tensor != nullptr) {
+    TF_DeleteTensor(tensor);
   }
-  TF_DeleteTensor(tensor);
 }
 
 void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
@@ -198,11 +207,11 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
 
 void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
   void* tensor_data = TF_TensorData(tensor);
-  if (tensor_data == nullptr) {
-    return;
+  if (tensor_data != nullptr) {
+    std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
   }
-  std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
 }
+
 } // namespace tf_utils
 
 #if defined(_MSC_VER)
