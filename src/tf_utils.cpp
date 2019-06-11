@@ -20,11 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable : 4996)
-#endif
-
 #include "tf_utils.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -213,7 +208,3 @@ void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
 }
 
 } // namespace tf_utils
-
-#if defined(_MSC_VER)
-#  pragma warning(pop)
-#endif
