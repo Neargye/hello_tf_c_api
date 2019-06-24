@@ -99,6 +99,8 @@ std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensor
   return data;
 }
 
+TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction);
+
 } // namespace tf_utils
 
 #if defined(_MSC_VER)

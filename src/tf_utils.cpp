@@ -22,6 +22,7 @@
 
 #include "tf_utils.hpp"
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -205,6 +206,38 @@ void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
   if (tensor_data != nullptr) {
     std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
   }
+}
+
+TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
+  // See https://github.com/Neargye/hello_tf_c_api/issues/21 for details.
+  TF_Status* status = TF_NewStatus();
+  TF_SessionOptions* options = TF_NewSessionOptions();
+
+  // The following is an equivalent of setting this in Python:
+  // config = tf.ConfigProto( allow_soft_placement = True )
+  // config.gpu_options.allow_growth = True
+  // config.gpu_options.per_process_gpu_memory_fraction = percentage
+
+  // Create a byte-array for the serialized ProtoConfig, set the mandatory bytes (first three and last four)
+  std::array<std::uint8_t, 15> config = {0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1};
+
+  // Convert the desired percentage into a byte-array.
+  std::uint8_t* bytes = reinterpret_cast<std::uint8_t*>(&gpu_memory_fraction);
+
+  // Put it to the config byte-array, from 3 to 10:
+  for (std::size_t i = 0; i < sizeof(gpu_memory_fraction); ++i) {
+    config[i + 3] = bytes[i];
+  }
+
+  TF_SetConfig(options, config.data(), config.size(), status);
+
+  if (TF_GetCode(status) != TF_OK) {
+    TF_DeleteStatus(status);
+    return nullptr;
+  }
+
+  TF_DeleteStatus(status);
+  return options;
 }
 
 } // namespace tf_utils
