@@ -219,7 +219,7 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
   // config.gpu_options.per_process_gpu_memory_fraction = percentage
 
   // Create a byte-array for the serialized ProtoConfig, set the mandatory bytes (first three and last four)
-  std::array<std::uint8_t, 15> config = {0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1};
+  std::array<std::uint8_t, 15> config = {{0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1}};
 
   // Convert the desired percentage into a byte-array.
   std::uint8_t* bytes = reinterpret_cast<std::uint8_t*>(&gpu_memory_fraction);
