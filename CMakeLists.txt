@@ -101,6 +101,8 @@ elseif(WIN32)
     configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/test/tensorflow.dll COPYONLY)
 endif()
 
+include_directories(src/3rdparty/scope_guard)
+
 add_executable(hello_tf src/hello_tf.cpp)
 target_link_libraries(hello_tf tensorflow)
 

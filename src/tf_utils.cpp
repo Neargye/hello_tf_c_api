@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "tf_utils.hpp"
+#include <scope_guard.hpp>
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -36,6 +37,7 @@ static void DeallocateBuffer(void* data, size_t) {
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
   std::ifstream f(file, std::ios::binary);
+  SCOPE_EXIT{ f.close(); };
   if (f.fail() || !f.is_open()) {
     return nullptr;
   }
@@ -45,13 +47,11 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   f.seekg(0, std::ios::beg);
 
   if (fsize < 1) {
-    f.close();
     return nullptr;
   }
 
   char* data = static_cast<char*>(std::malloc(fsize));
   f.read(data, fsize);
-  f.close();
 
   TF_Buffer* buf = TF_NewBuffer();
   buf->data = data;
@@ -75,6 +75,7 @@ TF_Graph* LoadGraph(const char* graphPath) {
 
   TF_Graph* graph = TF_NewGraph();
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
@@ -86,8 +87,6 @@ TF_Graph* LoadGraph(const char* graphPath) {
     graph = nullptr;
   }
 
-  TF_DeleteStatus(status);
-
   return graph;
 }
 
@@ -97,22 +96,22 @@ void DeleteGraph(TF_Graph* graph) {
 
 TF_Session* CreateSession(TF_Graph* graph) {
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_SessionOptions* options = TF_NewSessionOptions();
   TF_Session* session = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
 
   if (TF_GetCode(status) != TF_OK) {
     DeleteSession(session);
-    TF_DeleteStatus(status);
     return nullptr;
   }
-  TF_DeleteStatus(status);
 
   return session;
 }
 
 void DeleteSession(TF_Session* session) {
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_CloseSession(session, status);
   if (TF_GetCode(status) != TF_OK) {
     TF_CloseSession(session, status);
@@ -121,7 +120,6 @@ void DeleteSession(TF_Session* session) {
   if (TF_GetCode(status) != TF_OK) {
     TF_DeleteSession(session, status);
   }
-  TF_DeleteStatus(status);
 }
 
 TF_Code RunSession(TF_Session* session,
@@ -134,6 +132,7 @@ TF_Code RunSession(TF_Session* session,
   }
 
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_SessionRun(session,
                 nullptr, // Run options.
                 inputs, input_tensors, static_cast<int>(ninputs), // Input tensors, input tensor values, number of inputs.
@@ -143,9 +142,7 @@ TF_Code RunSession(TF_Session* session,
                 status // Output status.
   );
 
-  TF_Code code = TF_GetCode(status);
-  TF_DeleteStatus(status);
-  return code;
+  return TF_GetCode(status);
 }
 
 TF_Code RunSession(TF_Session* session,
@@ -211,6 +208,7 @@ void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
   // See https://github.com/Neargye/hello_tf_c_api/issues/21 for details.
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_SessionOptions* options = TF_NewSessionOptions();
 
   // The following is an equivalent of setting this in Python:
@@ -232,11 +230,10 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
   TF_SetConfig(options, config.data(), config.size(), status);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteStatus(status);
+    TF_DeleteSessionOptions(options);
     return nullptr;
   }
 
-  TF_DeleteStatus(status);
   return options;
 }
 
