@@ -31,6 +31,7 @@
 #endif
 
 #include <c_api.h> // TensorFlow C API header
+#include <scope_guard.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -63,6 +64,7 @@ int main() {
                                    dims.data(), static_cast<int>(dims.size()),
                                    data, data_size,
                                    DeallocateTensor, nullptr);
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor == nullptr) {
     std::cout << "Wrong creat tensor" << std::endl;
@@ -106,8 +108,6 @@ int main() {
   }
 
   std::cout << "Success creat tensor" << std::endl;
-
-  TF_DeleteTensor(tensor);
 
   return 0;
 }

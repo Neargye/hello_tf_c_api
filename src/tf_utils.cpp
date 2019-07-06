@@ -91,7 +91,9 @@ TF_Graph* LoadGraph(const char* graphPath) {
 }
 
 void DeleteGraph(TF_Graph* graph) {
-  TF_DeleteGraph(graph);
+  if (graph != nullptr) {
+    TF_DeleteGraph(graph);
+  }
 }
 
 TF_Session* CreateSession(TF_Graph* graph) {
@@ -110,15 +112,17 @@ TF_Session* CreateSession(TF_Graph* graph) {
 }
 
 void DeleteSession(TF_Session* session) {
-  TF_Status* status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_CloseSession(session, status);
-  if (TF_GetCode(status) != TF_OK) {
+  if (session != nullptr) {
+    TF_Status* status = TF_NewStatus();
+    SCOPE_EXIT{ TF_DeleteStatus(status); };
     TF_CloseSession(session, status);
-  }
-  TF_DeleteSession(session, status);
-  if (TF_GetCode(status) != TF_OK) {
+    if (TF_GetCode(status) != TF_OK) {
+      TF_CloseSession(session, status);
+    }
     TF_DeleteSession(session, status);
+    if (TF_GetCode(status) != TF_OK) {
+      TF_DeleteSession(session, status);
+    }
   }
 }
 

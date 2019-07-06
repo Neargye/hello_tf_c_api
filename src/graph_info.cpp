@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "tf_utils.hpp"
+#include <scope_guard.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -90,8 +91,7 @@ void PrintOpInputs(TF_Graph*, TF_Operation* op) {
   }
 }
 
-void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
-  TF_Status* status = TF_NewStatus();
+void PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
   const int num_outputs = TF_OperationNumOutputs(op);
 
   std::cout << "Number outputs: " << num_outputs << std::endl;
@@ -132,11 +132,9 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op) {
     }
     std::cout << "]" << std::endl;
   }
-
-  TF_DeleteStatus(status);
 }
 
-void PrintOp(TF_Graph* graph) {
+void PrintOps(TF_Graph* graph, TF_Status* status) {
   TF_Operation* op;
   std::size_t pos = 0;
 
@@ -151,21 +149,23 @@ void PrintOp(TF_Graph* graph) {
     std::cout << pos << ": " << name << " type: " << type << " device: " << device << " number inputs: " << num_inputs << " number outputs: " << num_outputs << std::endl;
 
     PrintOpInputs(graph, op);
-    PrintOpOutputs(graph, op);
+    PrintOpOutputs(graph, op, status);
     std::cout << std::endl;
   }
 }
 
 int main() {
   TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
-  PrintOp(graph);
+  TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
 
-  tf_utils::DeleteGraph(graph);
+  PrintOps(graph, status);
 
   return 0;
 }

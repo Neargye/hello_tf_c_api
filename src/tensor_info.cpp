@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "tf_utils.hpp"
+#include <scope_guard.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -88,9 +89,8 @@ void PrintInputs(TF_Graph*, TF_Operation* op) {
   }
 }
 
-void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
+void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
   const int num_outputs = TF_OperationNumOutputs(op);
-  TF_Status* status = TF_NewStatus();
 
   for (int i = 0; i < num_outputs; ++i) {
     const TF_Output output = {op, i};
@@ -128,11 +128,9 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op) {
     }
     std::cout << "]" << std::endl;
   }
-
-  TF_DeleteStatus(status);
 }
 
-void PrintTensorInfo(TF_Graph* graph, const char* layer_name) {
+void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status) {
   std::cout << "Tensor: " << layer_name;
   TF_Operation* op = TF_GraphOperationByName(graph, layer_name);
 
@@ -147,22 +145,24 @@ void PrintTensorInfo(TF_Graph* graph, const char* layer_name) {
 
   PrintInputs(graph, op);
 
-  PrintOutputs(graph, op);
+  PrintOutputs(graph, op, status);
 }
 
 int main() {
   TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
-  PrintTensorInfo(graph, "input_4");
+  TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  PrintTensorInfo(graph, "input_4", status);
   std::cout << std::endl;
 
-  PrintTensorInfo(graph, "output_node0");
-
-  tf_utils::DeleteGraph(graph);
+  PrintTensorInfo(graph, "output_node0", status);
 
   return 0;
 }

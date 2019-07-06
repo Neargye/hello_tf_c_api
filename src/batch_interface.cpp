@@ -21,11 +21,13 @@
 // SOFTWARE.
 
 #include "tf_utils.hpp"
+#include <scope_guard.hpp>
 #include <iostream>
 #include <vector>
 
 int main() {
   TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
@@ -55,12 +57,15 @@ int main() {
 
   const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
   const std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals_batch)};
+  SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); };
 
   const std::vector<std::int64_t> output_dims = {2, 4}; // batch 2
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
   std::vector<TF_Tensor*> output_tensors = {tf_utils::CreateEmptyTensor(TF_FLOAT, output_dims)};
+  SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); };
 
   TF_Session* session = tf_utils::CreateSession(graph);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr) {
     std::cout << "Can't create session" << std::endl;
     return 2;
@@ -78,10 +83,6 @@ int main() {
     std::cout << "Error run session TF_CODE: " << code;
     return code;
   }
-
-  tf_utils::DeleteTensors(input_tensors);
-  tf_utils::DeleteTensors(output_tensors);
-  tf_utils::DeleteGraph(graph);
 
   return 0;
 }

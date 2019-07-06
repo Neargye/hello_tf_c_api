@@ -26,13 +26,13 @@
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable : 4996)
 #  pragma warning(disable : 4190)
 #endif
 
 #include <c_api.h> // TensorFlow C API header
-#include <cstdio>
+#include <scope_guard.hpp>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 
 static void DeallocateBuffer(void* data, size_t) {
@@ -40,23 +40,22 @@ static void DeallocateBuffer(void* data, size_t) {
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
-  const auto f = std::fopen(file, "rb");
-  if (f == nullptr) {
+  std::ifstream f(file, std::ios::binary);
+  SCOPE_EXIT{ f.close(); };
+  if (f.fail() || !f.is_open()) {
     return nullptr;
   }
 
-  std::fseek(f, 0, SEEK_END);
-  const auto fsize = ftell(f);
-  std::fseek(f, 0, SEEK_SET);
+  f.seekg(0, std::ios::end);
+  const auto fsize = f.tellg();
+  f.seekg(0, std::ios::beg);
 
   if (fsize < 1) {
-    std::fclose(f);
     return nullptr;
   }
 
-  const auto data = std::malloc(fsize);
-  std::fread(data, fsize, 1, f);
-  std::fclose(f);
+  char* data = static_cast<char*>(std::malloc(fsize));
+  f.read(data, fsize);
 
   TF_Buffer* buf = TF_NewBuffer();
   buf->data = data;
@@ -75,6 +74,7 @@ int main() {
 
   TF_Graph* graph = TF_NewGraph();
   TF_Status* status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
@@ -82,16 +82,12 @@ int main() {
   TF_DeleteBuffer(buffer);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteStatus(status);
     TF_DeleteGraph(graph);
     std::cout << "Can't import GraphDef" << std::endl;
     return 2;
   }
 
   std::cout << "Load draph success" << std::endl;
-
-  TF_DeleteStatus(status);
-  TF_DeleteGraph(graph);
 
   return 0;
 }

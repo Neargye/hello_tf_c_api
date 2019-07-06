@@ -31,6 +31,7 @@
 #endif
 
 #include <c_api.h> // TensorFlow C API header
+#include <scope_guard.hpp>
 #include <cstring>
 #include <array>
 #include <iostream>
@@ -52,9 +53,8 @@ int main() {
     -0.4807833f, -0.3775733f, 0.1748378f, 0.7718275f, -0.4073670f, 0.0107582f, 0.0062978f, 0.9131795f, 0.7187147f, -0.0394935f, 0.1184392f, -0.6840039f,
   };
 
-  TF_Tensor* tensor = TF_AllocateTensor(TF_FLOAT,
-                                        dims.data(), static_cast<int>(dims.size()),
-                                        data_size);
+  TF_Tensor* tensor = TF_AllocateTensor(TF_FLOAT, dims.data(), static_cast<int>(dims.size()), data_size);
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor != nullptr && TF_TensorData(tensor) != nullptr) {
     std::memcpy(TF_TensorData(tensor), data.data(), std::min(data_size, TF_TensorByteSize(tensor)));
@@ -100,8 +100,6 @@ int main() {
   }
 
   std::cout << "Success allocate tensor" << std::endl;
-
-  TF_DeleteTensor(tensor);
 
   return 0;
 }

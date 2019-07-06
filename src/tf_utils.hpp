@@ -29,6 +29,7 @@
 #  pragma warning(push)
 #  pragma warning(disable : 4190)
 #endif
+
 #include <c_api.h> // TensorFlow C API header
 #include <cstddef>
 #include <cstdint>
