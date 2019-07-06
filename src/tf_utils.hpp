@@ -38,7 +38,7 @@
 
 namespace tf_utils {
 
-TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix = nullptr, TF_Status* status = nullptr);
+TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_Status* status = nullptr);
 
 TF_Graph* LoadGraph(const char* graph_path, TF_Status* status = nullptr);
 
