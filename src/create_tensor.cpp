@@ -43,7 +43,7 @@ static void DeallocateTensor(void* data, std::size_t, void*) {
 
 int main() {
   const std::vector<std::int64_t> dims = {1, 5, 12};
-  std::size_t data_size = sizeof(float);
+  auto data_size = sizeof(float);
   for (auto i : dims) {
     data_size *= i;
   }
@@ -60,10 +60,10 @@ int main() {
 
   std::copy(vals.begin(), vals.end(), data); // init input_vals.
 
-  TF_Tensor* tensor = TF_NewTensor(TF_FLOAT,
-                                   dims.data(), static_cast<int>(dims.size()),
-                                   data, data_size,
-                                   DeallocateTensor, nullptr);
+  auto tensor = TF_NewTensor(TF_FLOAT,
+                             dims.data(), static_cast<int>(dims.size()),
+                             data, data_size,
+                             DeallocateTensor, nullptr);
   SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor == nullptr) {

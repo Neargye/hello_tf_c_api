@@ -54,10 +54,10 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
     return nullptr;
   }
 
-  char* data = static_cast<char*>(std::malloc(fsize));
+  auto data = static_cast<char*>(std::malloc(fsize));
   f.read(data, fsize);
 
-  TF_Buffer* buf = TF_NewBuffer();
+  auto buf = TF_NewBuffer();
   buf->data = data;
   buf->length = fsize;
   buf->data_deallocator = DeallocateBuffer;
@@ -66,16 +66,16 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 }
 
 int main() {
-  TF_Buffer* buffer = ReadBufferFromFile("graph.pb");
+  auto buffer = ReadBufferFromFile("graph.pb");
   if (buffer == nullptr) {
     std::cout << "Can't read buffer from file" << std::endl;
     return 1;
   }
 
-  TF_Graph* graph = TF_NewGraph();
-  TF_Status* status = TF_NewStatus();
+  auto graph = TF_NewGraph();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
+  auto opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
   TF_DeleteImportGraphDefOptions(opts);

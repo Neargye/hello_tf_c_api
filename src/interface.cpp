@@ -26,7 +26,7 @@
 #include <vector>
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
@@ -50,18 +50,18 @@ int main() {
   std::vector<TF_Tensor*> output_tensors = {nullptr};
   SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); };
 
-  TF_Session* session = tf_utils::CreateSession(graph);
+  auto session = tf_utils::CreateSession(graph);
   SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr) {
     std::cout << "Can't create session" << std::endl;
     return 2;
   }
 
-  const TF_Code code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
+  const auto code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
 
   if (code == TF_OK) {
-    const std::vector<std::vector<float>> data = tf_utils::GetTensorsData<float>(output_tensors);
-    const std::vector<float> result = data[0];
+    const auto data = tf_utils::GetTensorsData<float>(output_tensors);
+    const auto result = data[0];
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
     std::cout << "Error run session TF_CODE: " << code;

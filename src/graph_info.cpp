@@ -80,28 +80,28 @@ const char* TFDataTypeToString(TF_DataType data_type) {
 }
 
 void PrintOpInputs(TF_Graph*, TF_Operation* op) {
-  const int num_inputs = TF_OperationNumInputs(op);
+  auto num_inputs = TF_OperationNumInputs(op);
 
   std::cout << "Number inputs: " << num_inputs << std::endl;
 
-  for (int i = 0; i < num_inputs; ++i) {
-    const TF_Input input = {op, i};
-    const TF_DataType type = TF_OperationInputType(input);
+  for (auto i = 0; i < num_inputs; ++i) {
+    auto input = TF_Input{op, i};
+    auto type = TF_OperationInputType(input);
     std::cout << std::to_string(i) << " type : " << TFDataTypeToString(type) << std::endl;
   }
 }
 
 void PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
-  const int num_outputs = TF_OperationNumOutputs(op);
+  auto num_outputs = TF_OperationNumOutputs(op);
 
   std::cout << "Number outputs: " << num_outputs << std::endl;
 
-  for (int i = 0; i < num_outputs; ++i) {
-    const TF_Output output = {op, i};
-    const TF_DataType type = TF_OperationOutputType(output);
+  for (auto i = 0; i < num_outputs; ++i) {
+    auto output = TF_Output{op, i};
+    auto type = TF_OperationOutputType(output);
     std::cout << std::to_string(i) << " type : " << TFDataTypeToString(type);
 
-    const int num_dims = TF_GraphGetTensorNumDims(graph, output, status);
+    auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
 
     if (TF_GetCode(status) != TF_OK) {
       std::cout << "Can't get tensor dimensionality" << std::endl;
@@ -124,7 +124,7 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
     }
 
     std::cout << " [";
-    for (int j = 0; j < num_dims; ++j) {
+    for (auto j = 0; j < num_dims; ++j) {
       std::cout << dims[j];
       if (j < num_dims - 1) {
         std::cout << ",";
@@ -139,12 +139,12 @@ void PrintOps(TF_Graph* graph, TF_Status* status) {
   std::size_t pos = 0;
 
   while ((op = TF_GraphNextOperation(graph, &pos)) != nullptr) {
-    const char* name = TF_OperationName(op);
-    const char* type = TF_OperationOpType(op);
-    const char* device = TF_OperationDevice(op);
+    auto name = TF_OperationName(op);
+    auto type = TF_OperationOpType(op);
+    auto device = TF_OperationDevice(op);
 
-    const int num_outputs = TF_OperationNumOutputs(op);
-    const int num_inputs = TF_OperationNumInputs(op);
+    auto num_outputs = TF_OperationNumOutputs(op);
+    auto num_inputs = TF_OperationNumInputs(op);
 
     std::cout << pos << ": " << name << " type: " << type << " device: " << device << " number inputs: " << num_inputs << " number outputs: " << num_outputs << std::endl;
 
@@ -155,14 +155,14 @@ void PrintOps(TF_Graph* graph, TF_Status* status) {
 }
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
 
   PrintOps(graph, status);

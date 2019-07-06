@@ -240,7 +240,7 @@ void DeleteTensor(TF_Tensor* tensor) {
 }
 
 void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
-  for (auto t : tensors) {
+  for (auto& t : tensors) {
     TF_DeleteTensor(t);
   }
 }

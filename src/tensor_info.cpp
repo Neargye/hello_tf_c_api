@@ -80,22 +80,22 @@ const char* TFDataTypeToString(TF_DataType data_type) {
 }
 
 void PrintInputs(TF_Graph*, TF_Operation* op) {
-  const int num_inputs = TF_OperationNumInputs(op);
+  auto num_inputs = TF_OperationNumInputs(op);
 
-  for (int i = 0; i < num_inputs; ++i) {
-    const TF_Input input = {op, i};
-    const TF_DataType type = TF_OperationInputType(input);
+  for (auto i = 0; i < num_inputs; ++i) {
+    auto input = TF_Input{op, i};
+    auto type = TF_OperationInputType(input);
     std::cout << "Input: " << i << " type: " << TFDataTypeToString(type) << std::endl;
   }
 }
 
 void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
-  const int num_outputs = TF_OperationNumOutputs(op);
+  auto num_outputs = TF_OperationNumOutputs(op);
 
   for (int i = 0; i < num_outputs; ++i) {
-    const TF_Output output = {op, i};
-    const TF_DataType type = TF_OperationOutputType(output);
-    const int num_dims = TF_GraphGetTensorNumDims(graph, output, status);
+    auto output = TF_Output{op, i};
+    auto type = TF_OperationOutputType(output);
+    auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
 
     if (TF_GetCode(status) != TF_OK) {
       std::cout << "Can't get tensor dimensionality" << std::endl;
@@ -120,7 +120,7 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
     }
 
     std::cout << " [";
-    for (int d = 0; d < num_dims; ++d) {
+    for (auto d = 0; d < num_dims; ++d) {
       std::cout << dims[d];
       if (d < num_dims - 1) {
         std::cout << ", ";
@@ -132,15 +132,15 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
 
 void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status) {
   std::cout << "Tensor: " << layer_name;
-  TF_Operation* op = TF_GraphOperationByName(graph, layer_name);
+  auto op = TF_GraphOperationByName(graph, layer_name);
 
   if (op == nullptr) {
     std::cout << "Could not get " << layer_name << std::endl;
     return;
   }
 
-  const int num_inputs = TF_OperationNumInputs(op);
-  const int num_outputs = TF_OperationNumOutputs(op);
+  auto num_inputs = TF_OperationNumInputs(op);
+  auto num_outputs = TF_OperationNumOutputs(op);
   std::cout << " inputs: " << num_inputs << " outputs: " << num_outputs << std::endl;
 
   PrintInputs(graph, op);
@@ -149,14 +149,14 @@ void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status)
 }
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
 
   PrintTensorInfo(graph, "input_4", status);

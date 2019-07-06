@@ -26,14 +26,14 @@
 #include <vector>
 
 int main() {
-  TF_Graph* graph = tf_utils::LoadGraph("graph.pb");
+  auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
-  TF_Output input_op = {TF_GraphOperationByName(graph, "input_4"), 0};
+  auto input_op = TF_Output{TF_GraphOperationByName(graph, "input_4"), 0};
   if (input_op.oper == nullptr) {
     std::cout << "Can't init input_op" << std::endl;
     return 2;
@@ -49,10 +49,10 @@ int main() {
   };
 
 
-  TF_Tensor* input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals);
+  auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
 
-  TF_Output out_op = {TF_GraphOperationByName(graph, "output_node0"), 0};
+  auto out_op = TF_Output{TF_GraphOperationByName(graph, "output_node0"), 0};
   if (out_op.oper == nullptr) {
     std::cout << "Can't init out_op" << std::endl;
     return 3;
@@ -60,10 +60,10 @@ int main() {
 
   TF_Tensor* output_tensor = nullptr;
 
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_SessionOptions* options = TF_NewSessionOptions();
-  TF_Session* sess = TF_NewSession(graph, options, status);
+  auto options = TF_NewSessionOptions();
+  auto sess = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
 
   if (TF_GetCode(status) != TF_OK) {
