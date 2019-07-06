@@ -37,7 +37,7 @@
 
 namespace tf_utils {
 
-TF_Graph* LoadGraph(const char* graphPath);
+TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix = nullptr);
 
 void DeleteGraph(TF_Graph* graph);
 

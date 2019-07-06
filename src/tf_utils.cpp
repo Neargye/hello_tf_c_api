@@ -50,10 +50,10 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
     return nullptr;
   }
 
-  char* data = static_cast<char*>(std::malloc(fsize));
+  auto data = static_cast<char*>(std::malloc(fsize));
   f.read(data, fsize);
 
-  TF_Buffer* buf = TF_NewBuffer();
+  auto buf = TF_NewBuffer();
   buf->data = data;
   buf->length = fsize;
   buf->data_deallocator = DeallocateBuffer;
@@ -61,22 +61,31 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   return buf;
 }
 
+TF_Tensor* ScalarStringTensor(const char* str, TF_Status* status) {
+  auto nbytes = 8 + TF_StringEncodedSize(std::strlen(str)); // 8 extra bytes - for start_offset.
+  auto tensor = TF_AllocateTensor(TF_STRING, NULL, 0, nbytes);
+  auto data = static_cast<char*>(TF_TensorData(tensor));
+  std::memset(data, 0, 8);
+  TF_StringEncode(str, strlen(str), data + 8, nbytes - 8, status);
+  return tensor;
+}
+
 } // namespace tf_utils::
 
-TF_Graph* LoadGraph(const char* graphPath) {
-  if (graphPath == nullptr) {
+TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix) {
+  if (graph_path == nullptr) {
     return nullptr;
   }
 
-  TF_Buffer* buffer = ReadBufferFromFile(graphPath);
+  auto buffer = ReadBufferFromFile(graph_path);
   if (buffer == nullptr) {
     return nullptr;
   }
 
-  TF_Graph* graph = TF_NewGraph();
-  TF_Status* status = TF_NewStatus();
+  auto graph = TF_NewGraph();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
+  auto opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
   TF_DeleteImportGraphDefOptions(opts);
@@ -84,7 +93,41 @@ TF_Graph* LoadGraph(const char* graphPath) {
 
   if (TF_GetCode(status) != TF_OK) {
     TF_DeleteGraph(graph);
-    graph = nullptr;
+    return nullptr;
+  }
+
+  if (checkpoint_prefix == nullptr) {
+    return graph;
+  }
+
+  auto checkpoint_tensor = ScalarStringTensor(checkpoint_prefix, status);
+  SCOPE_EXIT{ DeleteTensor(checkpoint_tensor); };
+  if (TF_GetCode(status) != TF_OK) {
+    TF_DeleteGraph(graph);
+    return nullptr;
+  }
+
+  auto input = TF_Output{TF_GraphOperationByName(graph, "save/Const"), 0};
+  auto restore_op = TF_GraphOperationByName(graph, "save/restore_all");
+
+  auto session = CreateSession(graph);
+  SCOPE_EXIT{ DeleteSession(session); };
+  if (session == nullptr) {
+    TF_DeleteGraph(graph);
+    return nullptr;
+  }
+
+  TF_SessionRun(session,
+                nullptr, // Run options.
+                &input, &checkpoint_tensor, 1, // Input tensors, input tensor values, number of inputs.
+                nullptr, nullptr, 0, // Output tensors, output tensor values, number of outputs.
+                &restore_op, 1, // Target operations, number of targets.
+                nullptr, // Run metadata.
+                status // Output status.
+  );
+  if (TF_GetCode(status) != TF_OK) {
+    TF_DeleteGraph(graph);
+    return nullptr;
   }
 
   return graph;
@@ -97,10 +140,10 @@ void DeleteGraph(TF_Graph* graph) {
 }
 
 TF_Session* CreateSession(TF_Graph* graph) {
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_SessionOptions* options = TF_NewSessionOptions();
-  TF_Session* session = TF_NewSession(graph, options, status);
+  auto options = TF_NewSessionOptions();
+  auto session = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
 
   if (TF_GetCode(status) != TF_OK) {
@@ -113,7 +156,7 @@ TF_Session* CreateSession(TF_Graph* graph) {
 
 void DeleteSession(TF_Session* session) {
   if (session != nullptr) {
-    TF_Status* status = TF_NewStatus();
+    auto status = TF_NewStatus();
     SCOPE_EXIT{ TF_DeleteStatus(status); };
     TF_CloseSession(session, status);
     if (TF_GetCode(status) != TF_OK) {
@@ -135,7 +178,7 @@ TF_Code RunSession(TF_Session* session,
     return TF_INVALID_ARGUMENT;
   }
 
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
   TF_SessionRun(session,
                 nullptr, // Run options.
@@ -164,12 +207,12 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
     return nullptr;
   }
 
-  TF_Tensor* tensor = TF_AllocateTensor(data_type, dims, static_cast<int>(num_dims), len);
+  auto tensor = TF_AllocateTensor(data_type, dims, static_cast<int>(num_dims), len);
   if (tensor == nullptr) {
     return nullptr;
   }
 
-  void* tensor_data = TF_TensorData(tensor);
+  auto tensor_data = TF_TensorData(tensor);
   if (tensor_data == nullptr) {
     TF_DeleteTensor(tensor);
     return nullptr;
@@ -203,7 +246,7 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
 }
 
 void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
-  void* tensor_data = TF_TensorData(tensor);
+  auto tensor_data = TF_TensorData(tensor);
   if (tensor_data != nullptr) {
     std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
   }
@@ -211,9 +254,9 @@ void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
 
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
   // See https://github.com/Neargye/hello_tf_c_api/issues/21 for details.
-  TF_Status* status = TF_NewStatus();
+  auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  TF_SessionOptions* options = TF_NewSessionOptions();
+  auto options = TF_NewSessionOptions();
 
   // The following is an equivalent of setting this in Python:
   // config = tf.ConfigProto( allow_soft_placement = True )
@@ -224,7 +267,7 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
   std::array<std::uint8_t, 15> config = {{0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1}};
 
   // Convert the desired percentage into a byte-array.
-  std::uint8_t* bytes = reinterpret_cast<std::uint8_t*>(&gpu_memory_fraction);
+  auto bytes = reinterpret_cast<std::uint8_t*>(&gpu_memory_fraction);
 
   // Put it to the config byte-array, from 3 to 10:
   for (std::size_t i = 0; i < sizeof(gpu_memory_fraction); ++i) {
