@@ -107,6 +107,10 @@ std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensor
 
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status = nullptr);
 
+const char* DataTypeToString(TF_DataType data_type);
+
+const char* CodeToString(TF_Code code);
+
 } // namespace tf_utils
 
 #if defined(_MSC_VER)
