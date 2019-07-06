@@ -33,25 +33,30 @@
 #include <c_api.h> // TensorFlow C API header
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace tf_utils {
 
-TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix = nullptr);
+TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix = nullptr, TF_Status* status = nullptr);
+
+TF_Graph* LoadGraph(const char* graph_path, TF_Status* status = nullptr);
 
 void DeleteGraph(TF_Graph* graph);
 
-TF_Session* CreateSession(TF_Graph* graph);
+TF_Session* CreateSession(TF_Graph* graph, TF_Status* status = nullptr);
 
-void DeleteSession(TF_Session* session);
+TF_Code DeleteSession(TF_Session* session, TF_Status* status = nullptr);
 
 TF_Code RunSession(TF_Session* session,
                    const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
-                   const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs);
+                   const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs,
+                   TF_Status* status = nullptr);
 
 TF_Code RunSession(TF_Session* session,
                    const std::vector<TF_Output>& inputs, const std::vector<TF_Tensor*>& input_tensors,
-                   const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors);
+                   const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors,
+                   TF_Status* status = nullptr);
 
 TF_Tensor* CreateTensor(TF_DataType data_type,
                         const std::int64_t* dims, std::size_t num_dims,
@@ -100,7 +105,7 @@ std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensor
   return data;
 }
 
-TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction);
+TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status = nullptr);
 
 } // namespace tf_utils
 

@@ -31,6 +31,7 @@
 namespace tf_utils {
 
 namespace {
+
 static void DeallocateBuffer(void* data, size_t) {
   std::free(data);
 }
@@ -62,17 +63,18 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 }
 
 TF_Tensor* ScalarStringTensor(const char* str, TF_Status* status) {
-  auto nbytes = 8 + TF_StringEncodedSize(std::strlen(str)); // 8 extra bytes - for start_offset.
-  auto tensor = TF_AllocateTensor(TF_STRING, NULL, 0, nbytes);
+  auto str_len = std::strlen(str);
+  auto nbytes = 8 + TF_StringEncodedSize(str_len); // 8 extra bytes - for start_offset.
+  auto tensor = TF_AllocateTensor(TF_STRING, nullptr, 0, nbytes);
   auto data = static_cast<char*>(TF_TensorData(tensor));
   std::memset(data, 0, 8);
-  TF_StringEncode(str, strlen(str), data + 8, nbytes - 8, status);
+  TF_StringEncode(str, str_len, data + 8, nbytes - 8, status);
   return tensor;
 }
 
 } // namespace tf_utils::
 
-TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix) {
+TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_Status* status) {
   if (graph_path == nullptr) {
     return nullptr;
   }
@@ -82,9 +84,14 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix) {
     return nullptr;
   }
 
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
+
   auto graph = TF_NewGraph();
-  auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
   auto opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
@@ -133,15 +140,27 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix) {
   return graph;
 }
 
+TF_Graph* LoadGraph(const char* graph_path, TF_Status* status) {
+  return LoadGraph(graph_path, nullptr, status);
+}
+
 void DeleteGraph(TF_Graph* graph) {
   if (graph != nullptr) {
     TF_DeleteGraph(graph);
   }
 }
 
-TF_Session* CreateSession(TF_Graph* graph) {
-  auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+TF_Session* CreateSession(TF_Graph* graph, TF_Status* status) {
+  if (graph == nullptr) {
+    return nullptr;
+  }
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
+
   auto options = TF_NewSessionOptions();
   auto session = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
@@ -154,32 +173,50 @@ TF_Session* CreateSession(TF_Graph* graph) {
   return session;
 }
 
-void DeleteSession(TF_Session* session) {
-  if (session != nullptr) {
-    auto status = TF_NewStatus();
-    SCOPE_EXIT{ TF_DeleteStatus(status); };
-    TF_CloseSession(session, status);
-    if (TF_GetCode(status) != TF_OK) {
-      TF_CloseSession(session, status);
-    }
-    TF_DeleteSession(session, status);
-    if (TF_GetCode(status) != TF_OK) {
-      TF_DeleteSession(session, status);
-    }
+TF_Code DeleteSession(TF_Session* session, TF_Status* status) {
+  if (session == nullptr) {
+    return TF_INVALID_ARGUMENT;
   }
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
+
+  TF_CloseSession(session, status);
+  if (TF_GetCode(status) != TF_OK) {
+    SCOPE_EXIT{ TF_CloseSession(session, status); };
+    SCOPE_EXIT{ TF_DeleteSession(session, status); };
+    return TF_GetCode(status);
+  }
+
+  TF_DeleteSession(session, status);
+  if (TF_GetCode(status) != TF_OK) {
+    SCOPE_EXIT{ TF_DeleteSession(session, status); };
+    return TF_GetCode(status);
+  }
+
+  return TF_OK;
 }
 
 TF_Code RunSession(TF_Session* session,
                    const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
-                   const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs) {
+                   const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs,
+                   TF_Status* status) {
   if (session == nullptr ||
       inputs == nullptr || input_tensors == nullptr ||
       outputs == nullptr || output_tensors == nullptr) {
     return TF_INVALID_ARGUMENT;
   }
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
 
-  auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
   TF_SessionRun(session,
                 nullptr, // Run options.
                 inputs, input_tensors, static_cast<int>(ninputs), // Input tensors, input tensor values, number of inputs.
@@ -194,10 +231,12 @@ TF_Code RunSession(TF_Session* session,
 
 TF_Code RunSession(TF_Session* session,
                    const std::vector<TF_Output>& inputs, const std::vector<TF_Tensor*>& input_tensors,
-                   const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors) {
+                   const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors,
+                   TF_Status* status) {
   return RunSession(session,
                     inputs.data(), input_tensors.data(), input_tensors.size(),
-                    outputs.data(), output_tensors.data(), output_tensors.size());
+                    outputs.data(), output_tensors.data(), output_tensors.size(),
+                    status);
 }
 
 TF_Tensor* CreateTensor(TF_DataType data_type,
@@ -252,10 +291,15 @@ void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
   }
 }
 
-TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction) {
+TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status) {
   // See https://github.com/Neargye/hello_tf_c_api/issues/21 for details.
-  auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
+
   auto options = TF_NewSessionOptions();
 
   // The following is an equivalent of setting this in Python:
