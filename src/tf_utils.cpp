@@ -44,7 +44,7 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   }
 
   f.seekg(0, std::ios::end);
-  const auto fsize = f.tellg();
+  auto fsize = f.tellg();
   f.seekg(0, std::ios::beg);
 
   if (fsize < 1) {
@@ -284,7 +284,7 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
   }
 }
 
-void SetTensorsData(TF_Tensor* tensor, const void* data, std::size_t len) {
+void SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   auto tensor_data = TF_TensorData(tensor);
   if (tensor_data != nullptr) {
     std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));

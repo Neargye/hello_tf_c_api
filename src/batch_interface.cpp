@@ -71,11 +71,11 @@ int main() {
     return 2;
   }
 
-  const auto code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
+  auto code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
 
   if (code == TF_OK) {
-    const auto data = tf_utils::GetTensorsData<float>(output_tensors);
-    const auto result = data[0];
+    auto data = tf_utils::GetTensorsData<float>(output_tensors);
+    auto result = data[0];
     std::cout << "batch: " << output_dims[0] << std::endl;
     std::cout << "Output vals_1: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
     std::cout << "Output vals_2: " << result[4] << ", " << result[5] << ", " << result[6] << ", " << result[7] << std::endl;

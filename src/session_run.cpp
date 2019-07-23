@@ -96,7 +96,7 @@ int main() {
     return 7;
   }
 
-  const auto data = static_cast<float*>(TF_TensorData(output_tensor));
+  auto data = static_cast<float*>(TF_TensorData(output_tensor));
 
   std::cout << "Output vals: " << data[0] << ", " << data[1] << ", " << data[2] << ", " << data[3] << std::endl;
 

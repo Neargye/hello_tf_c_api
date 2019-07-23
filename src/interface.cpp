@@ -57,11 +57,10 @@ int main() {
     return 2;
   }
 
-  const auto code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
+  auto code = tf_utils::RunSession(session, input_ops, input_tensors, out_ops, output_tensors);
 
   if (code == TF_OK) {
-    const auto data = tf_utils::GetTensorsData<float>(output_tensors);
-    const auto result = data[0];
+    auto result = tf_utils::GetTensorData<float>(output_tensors[0]);
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
     std::cout << "Error run session TF_CODE: " << code;

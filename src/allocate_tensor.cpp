@@ -85,7 +85,7 @@ int main() {
     return 5;
   }
 
-  const auto tensor_data = static_cast<float*>(TF_TensorData(tensor));
+  auto tensor_data = static_cast<float*>(TF_TensorData(tensor));
 
   if (tensor_data == nullptr) {
     std::cout << "Wrong data tensor" << std::endl;

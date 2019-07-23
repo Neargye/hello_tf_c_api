@@ -47,7 +47,7 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   }
 
   f.seekg(0, std::ios::end);
-  const auto fsize = f.tellg();
+  auto fsize = f.tellg();
   f.seekg(0, std::ios::beg);
 
   if (fsize < 1) {
