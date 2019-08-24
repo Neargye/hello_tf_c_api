@@ -284,11 +284,14 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
   }
 }
 
-void SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
+bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   auto tensor_data = TF_TensorData(tensor);
-  if (tensor_data != nullptr) {
+  if (tensor_data != nullptr && data != nullptr && len != 0) {
     std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
+    return true;
   }
+
+  return false;
 }
 
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status) {
