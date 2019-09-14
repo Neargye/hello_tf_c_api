@@ -97,14 +97,14 @@ void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status)
 
 int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
-  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); }; // Auto-delete on scope exit.
   if (graph == nullptr) {
     std::cout << "Can't load graph" << std::endl;
     return 1;
   }
 
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
 
   PrintTensorInfo(graph, "input_4", status);
   std::cout << std::endl;

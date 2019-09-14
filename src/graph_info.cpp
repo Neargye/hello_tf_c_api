@@ -110,7 +110,7 @@ int main() {
   }
 
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
 
   PrintOps(graph, status);
 

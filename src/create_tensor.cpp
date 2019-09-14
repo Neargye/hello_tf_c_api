@@ -64,7 +64,7 @@ int main() {
                              dims.data(), static_cast<int>(dims.size()),
                              data, data_size,
                              DeallocateTensor, nullptr);
-  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); }; // Auto-delete on scope exit.
 
   if (tensor == nullptr) {
     std::cout << "Wrong creat tensor" << std::endl;

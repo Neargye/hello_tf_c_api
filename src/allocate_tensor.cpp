@@ -54,7 +54,7 @@ int main() {
   };
 
   auto tensor = TF_AllocateTensor(TF_FLOAT, dims.data(), static_cast<int>(dims.size()), data_size);
-  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); }; // Auto-delete on scope exit.
 
   if (tensor != nullptr && TF_TensorData(tensor) != nullptr) {
     std::memcpy(TF_TensorData(tensor), data.data(), std::min(data_size, TF_TensorByteSize(tensor)));

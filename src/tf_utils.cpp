@@ -132,6 +132,7 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
                 nullptr, // Run metadata.
                 status // Output status.
   );
+
   if (TF_GetCode(status) != TF_OK) {
     TF_DeleteGraph(graph);
     return nullptr;
@@ -154,6 +155,7 @@ TF_Session* CreateSession(TF_Graph* graph, TF_Status* status) {
   if (graph == nullptr) {
     return nullptr;
   }
+
   MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
   if (status == nullptr) {
     status = TF_NewStatus();
@@ -177,6 +179,7 @@ TF_Code DeleteSession(TF_Session* session, TF_Status* status) {
   if (session == nullptr) {
     return TF_INVALID_ARGUMENT;
   }
+
   MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
   if (status == nullptr) {
     status = TF_NewStatus();
@@ -209,6 +212,7 @@ TF_Code RunSession(TF_Session* session,
       outputs == nullptr || output_tensors == nullptr) {
     return TF_INVALID_ARGUMENT;
   }
+
   MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
   if (status == nullptr) {
     status = TF_NewStatus();
@@ -257,8 +261,9 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
     return nullptr;
   }
 
-  if (data != nullptr) {
-    std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
+  len = std::min(len, TF_TensorByteSize(tensor));
+  if (data != nullptr && len != 0) {
+    std::memcpy(tensor_data, data, len);
   }
 
   return tensor;
@@ -286,8 +291,9 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
 
 bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   auto tensor_data = TF_TensorData(tensor);
+  len = std::min(len, TF_TensorByteSize(tensor));
   if (tensor_data != nullptr && data != nullptr && len != 0) {
-    std::memcpy(tensor_data, data, std::min(len, TF_TensorByteSize(tensor)));
+    std::memcpy(tensor_data, data, len);
     return true;
   }
 
@@ -309,7 +315,6 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* s
   // config = tf.ConfigProto( allow_soft_placement = True )
   // config.gpu_options.allow_growth = True
   // config.gpu_options.per_process_gpu_memory_fraction = percentage
-
   // Create a byte-array for the serialized ProtoConfig, set the mandatory bytes (first three and last four)
   std::array<std::uint8_t, 15> config = {{0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1}};
 

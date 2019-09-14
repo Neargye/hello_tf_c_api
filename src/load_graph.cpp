@@ -41,7 +41,7 @@ static void DeallocateBuffer(void* data, size_t) {
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
   std::ifstream f(file, std::ios::binary);
-  SCOPE_EXIT{ f.close(); };
+  SCOPE_EXIT{ f.close(); }; // Auto-delete on scope exit.
   if (f.fail() || !f.is_open()) {
     return nullptr;
   }
