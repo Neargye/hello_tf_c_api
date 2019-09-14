@@ -73,8 +73,9 @@ int main() {
   }
 
   auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); }; // Auto-delete on scope exit.
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
+  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
   auto opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
@@ -82,7 +83,6 @@ int main() {
   TF_DeleteBuffer(buffer);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteGraph(graph);
     std::cout << "Can't import GraphDef" << std::endl;
     return 2;
   }
