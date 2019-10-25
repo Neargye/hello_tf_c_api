@@ -2,6 +2,7 @@ build/
 tensorflow/
 models/
 .vscode/
+.vs/
 
 ### C++ gitignore ###
 # Prerequisites
