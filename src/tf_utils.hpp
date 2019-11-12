@@ -87,11 +87,12 @@ void SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
 template <typename T>
 std::vector<T> GetTensorData(const TF_Tensor* tensor) {
   auto data = static_cast<T*>(TF_TensorData(tensor));
-  if (data == nullptr) {
+  auto size = TF_TensorByteSize(tensor) / TF_DataTypeSize(TF_TensorType(tensor));
+  if (data == nullptr && size <= 0) {
     return {};
   }
 
-  return {data, data + TF_TensorElementCount(tensor)};
+  return {data, data + size};
 }
 
 template <typename T>
