@@ -29,7 +29,7 @@
 #  pragma warning(disable : 4190)
 #endif
 
-#include <c_api.h> // TensorFlow C API header
+#include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <iostream>
 
 int main() {
