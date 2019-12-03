@@ -269,12 +269,12 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
   return tensor;
 }
 
-TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims){
-  return CreateTensor(data_type, dims, num_dims, nullptr, 0);
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len) {
+  return CreateTensor(data_type, dims, num_dims, nullptr, len);
 }
 
-TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims) {
-  return CreateEmptyTensor(data_type, dims.data(), dims.size());
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, std::size_t len) {
+  return CreateEmptyTensor(data_type, dims.data(), dims.size(), len);
 }
 
 void DeleteTensor(TF_Tensor* tensor) {
