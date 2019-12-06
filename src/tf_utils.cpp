@@ -243,14 +243,22 @@ TF_Code RunSession(TF_Session* session,
                     status);
 }
 
-TF_Tensor* CreateTensor(TF_DataType data_type,
-                        const std::int64_t* dims, std::size_t num_dims,
-                        const void* data, std::size_t len) {
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len) {
   if (dims == nullptr) {
     return nullptr;
   }
 
-  auto tensor = TF_AllocateTensor(data_type, dims, static_cast<int>(num_dims), len);
+  return TF_AllocateTensor(data_type, dims, static_cast<int>(num_dims), len);
+}
+
+TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, std::size_t len) {
+  return CreateEmptyTensor(data_type, dims.data(), dims.size(), len);
+}
+
+TF_Tensor* CreateTensor(TF_DataType data_type,
+                        const std::int64_t* dims, std::size_t num_dims,
+                        const void* data, std::size_t len) {
+  auto tensor = CreateEmptyTensor(data_type, dims, num_dims, len);
   if (tensor == nullptr) {
     return nullptr;
   }
@@ -267,14 +275,6 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
   }
 
   return tensor;
-}
-
-TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len) {
-  return CreateTensor(data_type, dims, num_dims, nullptr, len);
-}
-
-TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, std::size_t len) {
-  return CreateEmptyTensor(data_type, dims.data(), dims.size(), len);
 }
 
 void DeleteTensor(TF_Tensor* tensor) {
