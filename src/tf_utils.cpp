@@ -336,6 +336,28 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* s
   return options;
 }
 
+TF_SessionOptions* CreateSessionOptions(std::uint8_t intra_op_parallelism_threads, std::uint8_t inter_op_parallelism_threads, TF_Status* status) {
+  // See https://github.com/tensorflow/tensorflow/issues/13853 for details.
+
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
+  }
+
+  auto options = TF_NewSessionOptions();
+  std::array<std::uint8_t, 4> config = {{0x10, intra_op_parallelism_threads, 0x28, inter_op_parallelism_threads}};
+  TF_SetConfig(options, config.data(), config.size(), status);
+
+  if (TF_GetCode(status) != TF_OK) {
+    TF_DeleteSessionOptions(options);
+    return nullptr;
+  }
+
+  return options;
+}
+
 const char* DataTypeToString(TF_DataType data_type) {
   switch (data_type) {
     case TF_FLOAT:
