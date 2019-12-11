@@ -44,6 +44,8 @@ TF_Graph* LoadGraph(const char* graph_path, TF_Status* status = nullptr);
 
 void DeleteGraph(TF_Graph* graph);
 
+TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status* status = nullptr);
+
 TF_Session* CreateSession(TF_Graph* graph, TF_Status* status = nullptr);
 
 TF_Code DeleteSession(TF_Session* session, TF_Status* status = nullptr);

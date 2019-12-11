@@ -151,7 +151,7 @@ void DeleteGraph(TF_Graph* graph) {
   }
 }
 
-TF_Session* CreateSession(TF_Graph* graph, TF_Status* status) {
+TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status* status) {
   if (graph == nullptr) {
     return nullptr;
   }
@@ -163,16 +163,24 @@ TF_Session* CreateSession(TF_Graph* graph, TF_Status* status) {
     delete_status.dismiss();
   }
 
-  auto options = TF_NewSessionOptions();
-  auto session = TF_NewSession(graph, options, status);
-  TF_DeleteSessionOptions(options);
+  MAKE_SCOPE_EXIT(delete_options){ TF_DeleteSessionOptions(options);};
+  if (options == nullptr) {
+    options = TF_NewSessionOptions();
+  } else {
+    delete_options.dismiss();
+  }
 
+  auto session = TF_NewSession(graph, options, status);
   if (TF_GetCode(status) != TF_OK) {
     DeleteSession(session);
     return nullptr;
   }
 
   return session;
+}
+
+TF_Session* CreateSession(TF_Graph* graph, TF_Status* status) {
+  return CreateSession(graph, nullptr, status);
 }
 
 TF_Code DeleteSession(TF_Session* session, TF_Status* status) {
