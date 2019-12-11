@@ -308,8 +308,38 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   return false;
 }
 
+std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output) {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
+  if (TF_GetCode(status) != TF_OK) {
+    return {};
+  }
+
+  std::vector<std::int64_t> result(num_dims);
+  TF_GraphGetTensorShape(graph, output, result.data(), num_dims, status);
+  if (TF_GetCode(status) != TF_OK) {
+    return {};
+  }
+
+  return result;
+}
+
+std::vector<std::vector<std::int64_t>> GetTensorsShape(TF_Graph* graph, const std::vector<TF_Output>& outputs) {
+  std::vector<std::vector<std::int64_t>> result;
+  result.reserve(outputs.size());
+
+  for (const auto& o : outputs) {
+    result.push_back(GetTensorShape(graph, o));
+  }
+
+  return result;
+}
+
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status) {
   // See https://github.com/Neargye/hello_tf_c_api/issues/21 for details.
+
   MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
   if (status == nullptr) {
     status = TF_NewStatus();
