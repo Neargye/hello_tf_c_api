@@ -35,6 +35,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <numeric>
 
 static void DeallocateTensor(void* data, std::size_t, void*) {
   std::free(data);
@@ -43,10 +44,7 @@ static void DeallocateTensor(void* data, std::size_t, void*) {
 
 int main() {
   const std::vector<std::int64_t> dims = {1, 5, 12};
-  auto data_size = sizeof(float);
-  for (auto i : dims) {
-    data_size *= i;
-  }
+  const auto data_size = std::accumulate(dims.begin(), dims.end(), sizeof(float), std::multiplies<std::int64_t>{});
 
   auto data = static_cast<float*>(std::malloc(data_size));
 

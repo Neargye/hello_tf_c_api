@@ -43,16 +43,22 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
     return nullptr;
   }
 
-  f.seekg(0, std::ios::end);
+  if (f.seekg(0, std::ios::end).fail()) {
+    return nullptr;
+  }
   auto fsize = f.tellg();
-  f.seekg(0, std::ios::beg);
+  if (f.seekg(0, std::ios::beg).fail()) {
+    return nullptr;
+  }
 
-  if (fsize < 1) {
+  if (fsize <= 0) {
     return nullptr;
   }
 
   auto data = static_cast<char*>(std::malloc(fsize));
-  f.read(data, fsize);
+  if (f.read(data, fsize).fail()) {
+    return nullptr;
+  }
 
   auto buf = TF_NewBuffer();
   buf->data = data;

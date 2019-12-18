@@ -37,13 +37,11 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 
 int main() {
-  const std::vector<int64_t> dims = {1, 5, 12};
-  auto data_size = sizeof(float);
-  for (auto i : dims) {
-    data_size *= i;
-  }
+  const std::vector<std::int64_t> dims = {1, 5, 12};
+  const auto data_size = std::accumulate(dims.begin(), dims.end(), sizeof(float), std::multiplies<std::int64_t>{});
 
   const std::vector<float> data = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,

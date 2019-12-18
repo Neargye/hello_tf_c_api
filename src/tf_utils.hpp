@@ -33,7 +33,6 @@
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <vector>
 
 namespace tf_utils {
@@ -88,6 +87,9 @@ void SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
 
 template <typename T>
 std::vector<T> GetTensorData(const TF_Tensor* tensor) {
+  if (tensor == nullptr) {
+    return {};
+  }
   auto data = static_cast<T*>(TF_TensorData(tensor));
   auto size = TF_TensorByteSize(tensor) / TF_DataTypeSize(TF_TensorType(tensor));
   if (data == nullptr && size <= 0) {
