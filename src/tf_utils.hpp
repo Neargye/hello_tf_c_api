@@ -92,7 +92,7 @@ std::vector<T> GetTensorData(const TF_Tensor* tensor) {
   }
   auto data = static_cast<T*>(TF_TensorData(tensor));
   auto size = TF_TensorByteSize(tensor) / TF_DataTypeSize(TF_TensorType(tensor));
-  if (data == nullptr && size <= 0) {
+  if (data == nullptr || size <= 0) {
     return {};
   }
 
