@@ -59,6 +59,7 @@ int main() {
   }
 
   TF_Tensor* output_tensor = nullptr;
+  SCOPE_EXIT{ tf_utils::DeleteTensor(output_tensor); }; // Auto-delete on scope exit.
 
   auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
