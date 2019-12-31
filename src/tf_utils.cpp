@@ -105,7 +105,7 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
   TF_DeleteBuffer(buffer);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteGraph(graph);
+    DeleteGraph(graph);
     return nullptr;
   }
 
@@ -116,7 +116,7 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
   auto checkpoint_tensor = ScalarStringTensor(checkpoint_prefix, status);
   SCOPE_EXIT{ DeleteTensor(checkpoint_tensor); };
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteGraph(graph);
+    DeleteGraph(graph);
     return nullptr;
   }
 
@@ -126,7 +126,7 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
   auto session = CreateSession(graph);
   SCOPE_EXIT{ DeleteSession(session); };
   if (session == nullptr) {
-    TF_DeleteGraph(graph);
+    DeleteGraph(graph);
     return nullptr;
   }
 
@@ -140,7 +140,7 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
   );
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteGraph(graph);
+    DeleteGraph(graph);
     return nullptr;
   }
 
@@ -169,7 +169,7 @@ TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status
     delete_status.dismiss();
   }
 
-  MAKE_SCOPE_EXIT(delete_options){ TF_DeleteSessionOptions(options);};
+  MAKE_SCOPE_EXIT(delete_options){ DeleteSessionOptions(options);};
   if (options == nullptr) {
     options = TF_NewSessionOptions();
   } else {
@@ -279,7 +279,7 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
 
   auto tensor_data = TF_TensorData(tensor);
   if (tensor_data == nullptr) {
-    TF_DeleteTensor(tensor);
+    DeleteTensor(tensor);
     return nullptr;
   }
 
@@ -299,7 +299,7 @@ void DeleteTensor(TF_Tensor* tensor) {
 
 void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
   for (auto& t : tensors) {
-    TF_DeleteTensor(t);
+    DeleteTensor(t);
   }
 }
 
@@ -373,7 +373,7 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* s
   TF_SetConfig(options, config.data(), config.size(), status);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteSessionOptions(options);
+    DeleteSessionOptions(options);
     return nullptr;
   }
 
@@ -395,11 +395,17 @@ TF_SessionOptions* CreateSessionOptions(std::uint8_t intra_op_parallelism_thread
   TF_SetConfig(options, config.data(), config.size(), status);
 
   if (TF_GetCode(status) != TF_OK) {
-    TF_DeleteSessionOptions(options);
+    DeleteSessionOptions(options);
     return nullptr;
   }
 
   return options;
+}
+
+void DeleteSessionOptions(TF_SessionOptions* options) {
+  if (options != nullptr) {
+    TF_DeleteSessionOptions(options);
+  }
 }
 
 const char* DataTypeToString(TF_DataType data_type) {

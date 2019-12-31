@@ -118,6 +118,8 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* s
 
 TF_SessionOptions* CreateSessionOptions(std::uint8_t intra_op_parallelism_threads, std::uint8_t inter_op_parallelism_threads, TF_Status* status = nullptr);
 
+void DeleteSessionOptions(TF_SessionOptions* options);
+
 const char* DataTypeToString(TF_DataType data_type);
 
 const char* CodeToString(TF_Code code);
