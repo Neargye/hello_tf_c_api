@@ -171,9 +171,6 @@ std::vector<TF_Tensor*> tf_image::TF_Model::processDataImg( const std::map<std::
   // set batch size:
   int batchSize = static_cast<int>(input.begin()->second.size());
 
-  // list of input layers
-  std::vector< std::string > inputOperationNames;
-
   // iterate over the inputs:
   for ( auto &inp : input_op_names ) {
 
