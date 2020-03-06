@@ -75,7 +75,7 @@ void run_single_image_example()
     std::cout << "Output vector #" << i << ": ";
     for ( size_t j = 0; j < results[i].size(); j++ )
     {
-      std::cout << results[i][j] << " ";
+      std::cout << std::fixed << std::setprecision(4) << results[i][j] << "\t";
     }
     std::cout << std::endl;
   }
@@ -99,8 +99,8 @@ void run_expecting_image_example() {
   
   // run prediction
   std::vector<cv::Mat> result = model2.predict<cv::Mat>( { image } );
-
   // the output image is type float32, and it can also contain any number of channels (even more than 4)
+
   // we can try to visualize it like a heatmap:
   cv::Mat heatmap = createHeatmap( result[0] );
   cv::resize( heatmap, heatmap, image.size() );
