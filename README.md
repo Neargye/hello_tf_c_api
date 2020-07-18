@@ -51,7 +51,7 @@ cmake --build .
 
 ## Get tensorflow lib
 
-For x64 CPU, you can download the tensorflow.so, tensorflow.dll and tensorflow.lib from <https://github.com/Neargye/tensorflow/releases>.
+For x64 CPU, you can download the tensorflow.so, tensorflow.dll and tensorflow.lib from <https://github.com/neargye-forks/tensorflow/releases>.
 
 Or build lib which version you need from the sources, with CPU or GPU support.
 
