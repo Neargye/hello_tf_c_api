@@ -18,14 +18,14 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 * [Interface](src/interface.cpp)
 * [Tensor Info](src/tensor_info.cpp)
 * [Graph Info](src/graph_info.cpp)
-* [Image processing](src/image_example.cpp)
+* [Image processing](src/image_example.cpp)  <--- Added image processing
 
 ## Build example
 
 ### Windows
 
 ```text
-git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
+git clone --depth 1 https://github.com/Xonxt/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
@@ -36,7 +36,7 @@ cmake --build . --config Debug
 ### Linux and macOS(Darwin)
 
 ```text
-git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
+git clone --depth 1 https://github.com/Xonxt/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
