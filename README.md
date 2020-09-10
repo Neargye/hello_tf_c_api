@@ -49,6 +49,7 @@ cmake --build .
 * After the build, you can find the TensorFlow lib in the folder hello_tf_c_api/tensorflow/lib, and header in hello_tf_c_api/tensorflow/include.
 * The tensorflow in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
 * Make sure that the tensorflow lib is in Output Directory or either in the directory contained by the %PATH% environment variable.
+* The image processing functionality requires the **OpenCV library**. Get it [here](https://github.com/opencv/opencv).
 
 ## Get tensorflow lib
 
