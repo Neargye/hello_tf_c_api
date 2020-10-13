@@ -18,6 +18,7 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 * [Interface](src/interface.cpp)
 * [Tensor Info](src/tensor_info.cpp)
 * [Graph Info](src/graph_info.cpp)
+* [Image processing](https://github.com/Xonxt/hello_tf_c_api/blob/master/src/image_example.cpp)
 
 ## Build example
 
