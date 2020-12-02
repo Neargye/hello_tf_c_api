@@ -33,7 +33,7 @@ cmake -G "Visual Studio 15 2017" -A x64 ..
 cmake --build . --config Debug
 ```
 
-### Linux and macOS(Darwin)
+### Linux
 
 ```text
 git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
@@ -41,6 +41,17 @@ cd hello_tf_c_api
 mkdir build
 cd build
 cmake -G "Unix Makefiles" ..
+cmake --build .
+```
+
+### macOS(Darwin)
+
+```text
+git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
+cd hello_tf_c_api
+mkdir build
+cd build
+cmake -G "XCode" ..
 cmake --build .
 ```
 
