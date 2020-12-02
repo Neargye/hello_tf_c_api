@@ -78,4 +78,11 @@ To generated the graph.pb file need takes a graph definition and a set of checkp
 
 ### [Here’s an example how create tensorflow.lib file from tensorflow.dll for windows](doc/create_lib_file_from_dll_for_windows.md)
 
+### __Few articles with details__
+
+* https://www.tensorflow.org/install/lang_c
+* https://medium.com/@vladislavsd/undocumented-tensorflow-c-api-b527c0b4ef6
+* https://medium.com/analytics-vidhya/deploying-tensorflow-2-1-as-c-c-executable-1d090845055c
+
+
 ## Licensed under the [MIT License](LICENSE)
