@@ -1,10 +1,6 @@
 # Example TensorFlow C API
 
-![Example TensorFlow C API logo](logo.png)
-
-Branch | Linux/OSX | Windows | License | Codacy
--------|-----------|---------|---------|-------
-master |[![Build Status](https://travis-ci.org/Neargye/hello_tf_c_api.svg?branch=master)](https://travis-ci.org/Neargye/hello_tf_c_api)|[![Build status](https://ci.appveyor.com/api/projects/status/4js5recgpxp53q0v/branch/master?svg=true)](https://ci.appveyor.com/project/Neargye/hello-tf-c-api/branch/master)|[![License](https://img.shields.io/github/license/Neargye/hello_tf_c_api.svg)](LICENSE)|[![Codacy Badge](https://api.codacy.com/project/badge/Grade/65a8401ec7da4ff49a9d4603dfbb600a)](https://www.codacy.com/app/Neargye/hello_tf_c_api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Neargye/hello_tf_c_api&amp;utm_campaign=Badge_Grade)
+![Example TensorFlow C API Logo](logo.png)
 
 Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 
