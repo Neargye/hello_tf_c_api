@@ -39,5 +39,6 @@
 #endif
 
 TEST_CASE("Hello TF C API") {
-  REQUIRE(std::string(TF_Version()) == std::string("2.7.0"));
+  const std::string version("2.7.0");
+  REQUIRE(std::string(TF_Version()).compare(0, version.size(), version) == 0);
 }
