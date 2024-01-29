@@ -28,7 +28,7 @@ if(UNIX AND NOT APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
         file(
         DOWNLOAD
-            https://github.com/Neargye/tensorflow/releases/download/v1.15.0/libtensorflow-cpu-linux-x86_64-1.15.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
+            https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-2.7.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
         STATUS
             status
         LOG
@@ -51,7 +51,7 @@ elseif(APPLE)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
         file(
         DOWNLOAD
-            https://github.com/Neargye/tensorflow/releases/download/v1.15.0/libtensorflow-cpu-darwin-x86_64-1.15.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
+            https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-2.7.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
         STATUS
             status
         LOG
@@ -75,7 +75,7 @@ elseif(WIN32)
     if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/tensorflow.dll)
         file(
         DOWNLOAD
-            https://github.com/Neargye/tensorflow/releases/download/v1.15.0/libtensorflow-cpu-windows-x86_64-1.15.0.zip ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip
+        https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-2.7.0.zip ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip
         STATUS
             status
         LOG

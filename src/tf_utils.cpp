@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2020 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -36,6 +36,10 @@ static void DeallocateBuffer(void* data, size_t) {
   std::free(data);
 }
 
+static void Deallocator(void*, size_t, void*) {
+  //std::free(data);
+}
+
 static TF_Buffer* ReadBufferFromFile(const char* file) {
   std::ifstream f(file, std::ios::binary);
   SCOPE_EXIT{ f.close(); };
@@ -68,13 +72,15 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   return buf;
 }
 
-TF_Tensor* ScalarStringTensor(const char* str, TF_Status* status) {
+TF_Tensor* ScalarStringTensor(const char* str, TF_Status*) {
   auto str_len = std::strlen(str);
-  auto nbytes = 8 + TF_StringEncodedSize(str_len); // 8 extra bytes - for start_offset.
-  auto tensor = TF_AllocateTensor(TF_STRING, nullptr, 0, nbytes);
-  auto data = static_cast<char*>(TF_TensorData(tensor));
-  std::memset(data, 0, 8);
-  TF_StringEncode(str, str_len, data + 8, nbytes - 8, status);
+  TF_TString tstring[1];
+  TF_TString_Init(&tstring[0]);
+  TF_TString_Copy(&tstring[0], str, str_len);
+  int64_t dims[] = { 1,1 };
+  int num_dims = 1;
+  TF_Tensor* tensor = TF_NewTensor(TF_STRING, dims, num_dims, &tstring[0], sizeof(tstring), &Deallocator, nullptr);
+
   return tensor;
 }
 
