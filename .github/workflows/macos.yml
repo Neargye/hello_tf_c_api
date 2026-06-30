@@ -11,12 +11,20 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macos-11  } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
-        - { os: macos-12 } # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-12-Readme.md#xcode
+        - { os: macos-15 }
 
     name: "${{ matrix.config.os }}"
     steps:
     - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - uses: actions/cache@v4
+      with:
+        path: tensorflow/python
+        key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
 
     - name: Build Release
       run: |

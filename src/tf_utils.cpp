@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -36,8 +36,22 @@ static void DeallocateBuffer(void* data, size_t) {
   std::free(data);
 }
 
-static void Deallocator(void*, size_t, void*) {
-  //std::free(data);
+struct StringTensorDeallocatorArg {
+  std::size_t size;
+};
+
+static void DeallocateStringTensor(void* data, size_t, void* arg) {
+  auto strings = static_cast<TF_TString*>(data);
+  auto deallocator_arg = static_cast<StringTensorDeallocatorArg*>(arg);
+
+  if (strings != nullptr && deallocator_arg != nullptr) {
+    for (std::size_t i = 0; i < deallocator_arg->size; ++i) {
+      TF_StringDealloc(&strings[i]);
+    }
+  }
+
+  delete[] strings;
+  delete deallocator_arg;
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
@@ -60,11 +74,21 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   }
 
   auto data = static_cast<char*>(std::malloc(fsize));
+  if (data == nullptr) {
+    return nullptr;
+  }
+
   if (f.read(data, fsize).fail()) {
+    std::free(data);
     return nullptr;
   }
 
   auto buf = TF_NewBuffer();
+  if (buf == nullptr) {
+    std::free(data);
+    return nullptr;
+  }
+
   buf->data = data;
   buf->length = fsize;
   buf->data_deallocator = DeallocateBuffer;
@@ -74,12 +98,13 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 
 TF_Tensor* ScalarStringTensor(const char* str, TF_Status*) {
   auto str_len = std::strlen(str);
-  TF_TString tstring[1];
-  TF_TString_Init(&tstring[0]);
-  TF_TString_Copy(&tstring[0], str, str_len);
+  auto tstring = new TF_TString[1];
+  TF_StringInit(&tstring[0]);
+  TF_StringCopy(&tstring[0], str, str_len);
   int64_t dims[] = { 1,1 };
   int num_dims = 1;
-  TF_Tensor* tensor = TF_NewTensor(TF_STRING, dims, num_dims, &tstring[0], sizeof(tstring), &Deallocator, nullptr);
+  auto deallocator_arg = new StringTensorDeallocatorArg{1};
+  TF_Tensor* tensor = TF_NewTensor(TF_STRING, dims, num_dims, tstring, sizeof(TF_TString), &DeallocateStringTensor, deallocator_arg);
 
   return tensor;
 }
@@ -121,13 +146,17 @@ TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_St
 
   auto checkpoint_tensor = ScalarStringTensor(checkpoint_prefix, status);
   SCOPE_EXIT{ DeleteTensor(checkpoint_tensor); };
-  if (TF_GetCode(status) != TF_OK) {
+  if (checkpoint_tensor == nullptr || TF_GetCode(status) != TF_OK) {
     DeleteGraph(graph);
     return nullptr;
   }
 
   auto input = TF_Output{TF_GraphOperationByName(graph, "save/Const"), 0};
   auto restore_op = TF_GraphOperationByName(graph, "save/restore_all");
+  if (input.oper == nullptr || restore_op == nullptr) {
+    DeleteGraph(graph);
+    return nullptr;
+  }
 
   auto session = CreateSession(graph);
   SCOPE_EXIT{ DeleteSession(session); };
@@ -257,6 +286,10 @@ TF_Code RunSession(TF_Session* session,
                    const std::vector<TF_Output>& inputs, const std::vector<TF_Tensor*>& input_tensors,
                    const std::vector<TF_Output>& outputs, std::vector<TF_Tensor*>& output_tensors,
                    TF_Status* status) {
+  if (inputs.size() != input_tensors.size() || outputs.size() != output_tensors.size()) {
+    return TF_INVALID_ARGUMENT;
+  }
+
   return RunSession(session,
                     inputs.data(), input_tensors.data(), input_tensors.size(),
                     outputs.data(), output_tensors.data(), output_tensors.size(),
@@ -310,6 +343,10 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors) {
 }
 
 bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
+  if (tensor == nullptr) {
+    return false;
+  }
+
   auto tensor_data = TF_TensorData(tensor);
   len = std::min(len, TF_TensorByteSize(tensor));
   if (tensor_data != nullptr && data != nullptr && len != 0) {
@@ -321,11 +358,15 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
 }
 
 std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output) {
+  if (graph == nullptr || output.oper == nullptr) {
+    return {};
+  }
+
   auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
 
   auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
-  if (TF_GetCode(status) != TF_OK) {
+  if (TF_GetCode(status) != TF_OK || num_dims < 0) {
     return {};
   }
 

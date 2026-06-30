@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -56,12 +56,26 @@ int main() {
   input_vals_batch.insert(input_vals_batch.end(), input_vals_2.begin(), input_vals_2.end());
 
   const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
+  if (input_ops[0].oper == nullptr) {
+    std::cout << "Can't init input_op" << std::endl;
+    return 3;
+  }
+
   const std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals_batch)};
   SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); }; // Auto-delete on scope exit.
+  if (input_tensors[0] == nullptr) {
+    std::cout << "Can't create input tensor" << std::endl;
+    return 4;
+  }
 
   const std::vector<std::int64_t> output_dims = {2, 4}; // batch 2
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
-  std::vector<TF_Tensor*> output_tensors = {tf_utils::CreateEmptyTensor(TF_FLOAT, output_dims)};
+  if (out_ops[0].oper == nullptr) {
+    std::cout << "Can't init out_op" << std::endl;
+    return 5;
+  }
+
+  std::vector<TF_Tensor*> output_tensors = {nullptr};
   SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); }; // Auto-delete on scope exit.
 
   auto session = tf_utils::CreateSession(graph);
@@ -76,6 +90,10 @@ int main() {
   if (code == TF_OK) {
     auto data = tf_utils::GetTensorsData<float>(output_tensors);
     auto result = data[0];
+    if (result.size() < 8) {
+      std::cout << "Wrong output tensor data" << std::endl;
+      return 6;
+    }
     std::cout << "batch: " << output_dims[0] << std::endl;
     std::cout << "Output vals_1: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
     std::cout << "Output vals_2: " << result[4] << ", " << result[5] << ", " << result[6] << ", " << result[7] << std::endl;

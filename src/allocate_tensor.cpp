@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ int main() {
   if (tensor != nullptr && TF_TensorData(tensor) != nullptr) {
     std::memcpy(TF_TensorData(tensor), data.data(), std::min(data_size, TF_TensorByteSize(tensor)));
   } else {
-    std::cout << "Wrong creat tensor" << std::endl;
+    std::cout << "Wrong create tensor" << std::endl;
     return 1;
   }
 

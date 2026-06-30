@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -59,11 +59,21 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   }
 
   auto data = static_cast<char*>(std::malloc(fsize));
+  if (data == nullptr) {
+    return nullptr;
+  }
+
   if (f.read(data, fsize).fail()) {
+    std::free(data);
     return nullptr;
   }
 
   auto buf = TF_NewBuffer();
+  if (buf == nullptr) {
+    std::free(data);
+    return nullptr;
+  }
+
   buf->data = data;
   buf->length = fsize;
   buf->data_deallocator = DeallocateBuffer;
@@ -93,7 +103,7 @@ int main() {
     return 2;
   }
 
-  std::cout << "Load draph success" << std::endl;
+  std::cout << "Load graph success" << std::endl;
 
   return 0;
 }

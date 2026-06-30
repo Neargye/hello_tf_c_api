@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -43,10 +43,24 @@ int main() {
   };
 
   const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
+  if (input_ops[0].oper == nullptr) {
+    std::cout << "Can't init input_op" << std::endl;
+    return 3;
+  }
+
   const std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals)};
   SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); }; // Auto-delete on scope exit.
+  if (input_tensors[0] == nullptr) {
+    std::cout << "Can't create input tensor" << std::endl;
+    return 4;
+  }
 
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
+  if (out_ops[0].oper == nullptr) {
+    std::cout << "Can't init out_op" << std::endl;
+    return 5;
+  }
+
   std::vector<TF_Tensor*> output_tensors = {nullptr};
   SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); }; // Auto-delete on scope exit.
 
@@ -61,6 +75,10 @@ int main() {
 
   if (code == TF_OK) {
     auto result = tf_utils::GetTensorData<float>(output_tensors[0]);
+    if (result.size() < 4) {
+      std::cout << "Wrong output tensor data" << std::endl;
+      return 6;
+    }
     std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
     std::cout << "Error run session TF_CODE: " << code;

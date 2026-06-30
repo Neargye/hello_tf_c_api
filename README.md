@@ -9,6 +9,7 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 * [Hello TF](src/hello_tf.cpp)
 * [Load graph](src/load_graph.cpp)
 * [Create Tensor](src/create_tensor.cpp)
+* [Create String Tensor](src/create_string_tensor.cpp)
 * [Allocate Tensor](src/allocate_tensor.cpp)
 * [Run session](src/session_run.cpp)
 * [Interface](src/interface.cpp)

@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -82,7 +82,7 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len);
 
 template <typename T>
 void SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
-  SetTensorsData(tensor, data.data(), data.size() * sizeof(T));
+  SetTensorData(tensor, data.data(), data.size() * sizeof(T));
 }
 
 template <typename T>

@@ -10,38 +10,22 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-12",   cxx: "g++-12",     os: "ubuntu-22.04" }
-        - { cc: "clang-16", cxx: "clang++-16", os: "ubuntu-20.04" }
+        - { cc: "gcc-14",    cxx: "g++-14",      os: "ubuntu-24.04" }
+        - { cc: "clang-18",  cxx: "clang++-18",  os: "ubuntu-24.04" }
 
     name: "${{ matrix.compiler.cc }}"
     runs-on: ${{ matrix.compiler.os }}
     steps:
     - uses: actions/checkout@v4
 
-    - name: Configure clang
-      run: |
-        if [[ "${{ matrix.compiler.cc }}" == "clang"* ]]; then
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-9 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-10 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main"
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
-          sudo apt update
-          sudo apt install ${{ matrix.compiler.cc }} -y
-        fi
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
 
-    - name: Configure gcc
-      run: |
-        if [[ "${{ matrix.compiler.cc }}" == "gcc"* ]]; then
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt update
-          sudo apt install ${{ matrix.compiler.cxx }} -y
-        fi
+    - uses: actions/cache@v4
+      with:
+        path: tensorflow/python
+        key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
 
     - name: Build Release
       run: |
@@ -60,3 +44,36 @@ jobs:
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
         cmake --build . -j 4 --config Debug
         ctest --output-on-failure -C Debug
+
+  sanitizers:
+    name: "clang-18 sanitizers"
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - uses: actions/cache@v4
+      with:
+        path: tensorflow/python
+        key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
+
+    - name: Build and test with ASan/UBSan
+      env:
+        # TensorFlow's prebuilt shared libraries keep process-lifetime state; keep
+        # LSan disabled here and cover local tensor ownership with doctest checks.
+        ASAN_OPTIONS: detect_leaks=0:strict_init_order=1
+        UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      run: |
+        rm -rf build-sanitizers
+        mkdir build-sanitizers
+        cd build-sanitizers
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_COMPILER=clang++-18 \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+        cmake --build . --target base.t -j 4 --config Debug
+        ctest --output-on-failure -C Debug -R "^base\\.t$"

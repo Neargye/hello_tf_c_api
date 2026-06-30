@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -47,6 +47,10 @@ int main() {
   const auto data_size = std::accumulate(dims.begin(), dims.end(), sizeof(float), std::multiplies<std::int64_t>{});
 
   auto data = static_cast<float*>(std::malloc(data_size));
+  if (data == nullptr) {
+    std::cout << "Wrong allocate tensor data" << std::endl;
+    return 1;
+  }
 
   std::vector<float> vals = {
     -0.4809832f, -0.3770838f, 0.1743573f, 0.7720509f, -0.4064746f, 0.0116595f, 0.0051413f, 0.9135732f, 0.7197526f, -0.0400658f, 0.1180671f, -0.6829428f,
@@ -65,7 +69,7 @@ int main() {
   SCOPE_EXIT{ TF_DeleteTensor(tensor); }; // Auto-delete on scope exit.
 
   if (tensor == nullptr) {
-    std::cout << "Wrong creat tensor" << std::endl;
+    std::cout << "Wrong create tensor" << std::endl;
     return 1;
   }
 

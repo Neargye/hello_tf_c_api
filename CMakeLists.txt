@@ -1,6 +1,11 @@
-﻿cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.20)
 
 project(hello_tf)
+
+set(TENSORFLOW_VERSION "2.21.0" CACHE STRING "TensorFlow Python wheel version.")
+set(TENSORFLOW_ROOT "${PROJECT_SOURCE_DIR}/tensorflow" CACHE PATH "Local TensorFlow wheel extraction directory.")
+set(TENSORFLOW_PIP_TARGET "${TENSORFLOW_ROOT}/python")
+set(TENSORFLOW_PACKAGE_DIR "${TENSORFLOW_PIP_TARGET}/tensorflow")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,115 +21,175 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     endif()
 endif()
 
-if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
-    make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(TENSORFLOW_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+
+set(TENSORFLOW_VERSION_STAMP "${TENSORFLOW_PIP_TARGET}/.tensorflow-${TENSORFLOW_VERSION}")
+if(NOT EXISTS "${TENSORFLOW_VERSION_STAMP}")
+    file(REMOVE_RECURSE "${TENSORFLOW_PIP_TARGET}")
+    file(MAKE_DIRECTORY "${TENSORFLOW_PIP_TARGET}")
+
+    execute_process(
+        COMMAND
+            "${TENSORFLOW_PYTHON_EXECUTABLE}" -m pip install
+            --disable-pip-version-check
+            --no-cache-dir
+            --only-binary=:all:
+            --no-deps
+            --target "${TENSORFLOW_PIP_TARGET}"
+            "tensorflow==${TENSORFLOW_VERSION}"
+        RESULT_VARIABLE tensorflow_install_result
+    )
+    if(NOT tensorflow_install_result EQUAL 0)
+        message(FATAL_ERROR "error installing TensorFlow ${TENSORFLOW_VERSION} wheel into ${TENSORFLOW_PIP_TARGET}")
+    endif()
+
+    file(WRITE "${TENSORFLOW_VERSION_STAMP}" "${TENSORFLOW_VERSION}\n")
 endif()
 
-if(UNIX AND NOT APPLE)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
-    endif()
+set(TENSORFLOW_INCLUDE_DIR "${TENSORFLOW_PACKAGE_DIR}/include")
+if(NOT EXISTS "${TENSORFLOW_INCLUDE_DIR}/tensorflow/c/c_api.h")
+    message(FATAL_ERROR "TensorFlow C API header not found in ${TENSORFLOW_INCLUDE_DIR}")
+endif()
 
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
-        file(
-        DOWNLOAD
-            https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-2.7.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz
-        STATUS
-            status
-        LOG
-            log
+set(TENSORFLOW_LIBRARY_DIRS
+    "${TENSORFLOW_PACKAGE_DIR}"
+    "${TENSORFLOW_PACKAGE_DIR}/python"
+)
+
+unset(TENSORFLOW_LIBRARY CACHE)
+unset(TENSORFLOW_FRAMEWORK_LIBRARY CACHE)
+unset(TENSORFLOW_RUNTIME_LIBRARY CACHE)
+unset(TENSORFLOW_FRAMEWORK_RUNTIME_LIBRARY CACHE)
+
+if(WIN32)
+    find_library(TENSORFLOW_LIBRARY
+        NAMES tensorflow _pywrap_tensorflow_common tensorflow_cc
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    if(NOT TENSORFLOW_LIBRARY)
+        find_file(TENSORFLOW_LIBRARY
+            NAMES tensorflow.lib _pywrap_tensorflow_common.dll.if.lib tensorflow_cc.lib tensorflow_cc.2.dll.if.lib
+            PATHS ${TENSORFLOW_LIBRARY_DIRS}
+            NO_DEFAULT_PATH
         )
-        list(GET status 0 status_code)
-        list(GET status 1 status_string)
-        if(NOT status_code EQUAL 0)
-            message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
-        endif()
-
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
-        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/linux.tar.gz)
     endif()
-
+    find_file(TENSORFLOW_FRAMEWORK_LIBRARY
+        NAMES tensorflow_framework.lib tensorflow_framework.2.dll.if.lib
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    find_file(TENSORFLOW_RUNTIME_LIBRARY
+        NAMES tensorflow.dll _pywrap_tensorflow_common.dll tensorflow_cc.dll tensorflow_cc.2.dll
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    find_file(TENSORFLOW_FRAMEWORK_RUNTIME_LIBRARY
+        NAMES tensorflow_framework.dll tensorflow_framework.2.dll
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    get_filename_component(TENSORFLOW_PYTHON_DIR "${TENSORFLOW_PYTHON_EXECUTABLE}" DIRECTORY)
+    find_file(PYTHON_RUNTIME_LIBRARY
+        NAMES python312.dll python311.dll python310.dll
+        PATHS "${TENSORFLOW_PYTHON_DIR}"
+        NO_DEFAULT_PATH
+    )
 elseif(APPLE)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
-    endif()
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/libtensorflow.so)
-        file(
-        DOWNLOAD
-            https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-2.7.0.tar.gz ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz
-        STATUS
-            status
-        LOG
-            log
+    find_library(TENSORFLOW_LIBRARY
+        NAMES tensorflow libtensorflow.dylib tensorflow_cc libtensorflow_cc.2.dylib tensorflow_framework libtensorflow_framework.2.dylib
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    if(NOT TENSORFLOW_LIBRARY)
+        find_file(TENSORFLOW_LIBRARY
+            NAMES libtensorflow.dylib _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.2.dylib libtensorflow_framework.2.dylib
+            PATHS ${TENSORFLOW_LIBRARY_DIRS}
+            NO_DEFAULT_PATH
         )
-        list(GET status 0 status_code)
-        list(GET status 1 status_string)
-        if(NOT status_code EQUAL 0)
-            message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
-        endif()
-
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
-        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/darwin.tar.gz)
     endif()
-
-elseif(WIN32)
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow)
-        make_directory(${CMAKE_SOURCE_DIR}/tensorflow)
-    endif()
-
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/tensorflow/lib/tensorflow.dll)
-        file(
-        DOWNLOAD
-        https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-2.7.0.zip ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip
-        STATUS
-            status
-        LOG
-            log
+else()
+    find_library(TENSORFLOW_LIBRARY
+        NAMES tensorflow libtensorflow.so tensorflow_cc libtensorflow_cc.so.2 tensorflow_framework libtensorflow_framework.so.2
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
+    if(NOT TENSORFLOW_LIBRARY)
+        find_file(TENSORFLOW_LIBRARY
+            NAMES libtensorflow.so _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.so.2 libtensorflow_framework.so.2
+            PATHS ${TENSORFLOW_LIBRARY_DIRS}
+            NO_DEFAULT_PATH
         )
-        list(GET status 0 status_code)
-        list(GET status 1 status_string)
-        if(NOT status_code EQUAL 0)
-            message(FATAL_ERROR "error downloading tensorflow lib: ${status_string}" "${log}")
-        endif()
-
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvzf ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tensorflow)
-        file(REMOVE ${CMAKE_SOURCE_DIR}/tensorflow/windows.zip)
     endif()
-
-    configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/tensorflow.dll COPYONLY)
-    configure_file(tensorflow/lib/tensorflow.dll ${CMAKE_CURRENT_BINARY_DIR}/test/tensorflow.dll COPYONLY)
 endif()
 
-include_directories(tensorflow/include)
-include_directories(src/3rdparty/scope_guard/include)
-link_directories(${CMAKE_SOURCE_DIR}/tensorflow/lib)
+if(NOT TENSORFLOW_LIBRARY)
+    message(FATAL_ERROR "TensorFlow native library not found in ${TENSORFLOW_LIBRARY_DIRS}")
+endif()
 
-add_executable(hello_tf src/hello_tf.cpp)
-target_link_libraries(hello_tf tensorflow)
+get_filename_component(TENSORFLOW_LIBRARY_DIR "${TENSORFLOW_LIBRARY}" DIRECTORY)
+set(CMAKE_BUILD_RPATH "${TENSORFLOW_LIBRARY_DIR}")
 
-add_executable(session_run src/session_run.cpp src/tf_utils.cpp src/tf_utils.hpp)
-target_link_libraries(session_run tensorflow)
+add_library(tensorflow SHARED IMPORTED GLOBAL)
+set_target_properties(tensorflow PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${TENSORFLOW_INCLUDE_DIR}"
+)
 
-add_executable(load_graph src/load_graph.cpp)
-target_link_libraries(load_graph tensorflow)
+if(WIN32)
+    set_target_properties(tensorflow PROPERTIES IMPORTED_IMPLIB "${TENSORFLOW_LIBRARY}")
+    if(TENSORFLOW_FRAMEWORK_LIBRARY)
+        set_property(TARGET tensorflow APPEND PROPERTY INTERFACE_LINK_LIBRARIES "${TENSORFLOW_FRAMEWORK_LIBRARY}")
+    endif()
+    if(TENSORFLOW_RUNTIME_LIBRARY)
+        set_target_properties(tensorflow PROPERTIES IMPORTED_LOCATION "${TENSORFLOW_RUNTIME_LIBRARY}")
+    else()
+        message(FATAL_ERROR "TensorFlow runtime DLL not found in ${TENSORFLOW_LIBRARY_DIRS}")
+    endif()
+    set(TENSORFLOW_RUNTIME_LIBRARIES "${TENSORFLOW_RUNTIME_LIBRARY}")
+    if(TENSORFLOW_FRAMEWORK_RUNTIME_LIBRARY)
+        list(APPEND TENSORFLOW_RUNTIME_LIBRARIES "${TENSORFLOW_FRAMEWORK_RUNTIME_LIBRARY}")
+    endif()
+    if(PYTHON_RUNTIME_LIBRARY)
+        list(APPEND TENSORFLOW_RUNTIME_LIBRARIES "${PYTHON_RUNTIME_LIBRARY}")
+    endif()
+else()
+    set_target_properties(tensorflow PROPERTIES IMPORTED_LOCATION "${TENSORFLOW_LIBRARY}")
+endif()
 
-add_executable(interface src/interface.cpp src/tf_utils.cpp src/tf_utils.hpp)
-target_link_libraries(interface tensorflow)
+function(target_link_tensorflow target)
+    target_link_libraries(${target} PRIVATE tensorflow)
+    if(WIN32)
+        foreach(tensorflow_runtime_library ${TENSORFLOW_RUNTIME_LIBRARIES})
+            add_custom_command(TARGET ${target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${tensorflow_runtime_library}"
+                    "$<TARGET_FILE_DIR:${target}>"
+            )
+        endforeach()
+    endif()
+endfunction()
 
-add_executable(graph_info src/graph_info.cpp src/tf_utils.cpp src/tf_utils.hpp)
-target_link_libraries(graph_info tensorflow)
+function(add_tf_example target)
+    add_executable(${target} ${ARGN})
+    target_include_directories(${target} PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/3rdparty/scope_guard/include"
+    )
+    target_link_tensorflow(${target})
+endfunction()
 
-add_executable(create_tensor src/create_tensor.cpp)
-target_link_libraries(create_tensor tensorflow)
+set(TF_UTILS_SOURCES src/tf_utils.cpp src/tf_utils.hpp)
 
-add_executable(tensor_info src/tensor_info.cpp src/tf_utils.cpp src/tf_utils.hpp)
-target_link_libraries(tensor_info tensorflow)
-
-add_executable(allocate_tensor src/allocate_tensor.cpp)
-target_link_libraries(allocate_tensor tensorflow)
-
-add_executable(batch_interface src/batch_interface.cpp src/tf_utils.cpp src/tf_utils.hpp)
-target_link_libraries(batch_interface tensorflow)
+add_tf_example(hello_tf src/hello_tf.cpp)
+add_tf_example(session_run src/session_run.cpp ${TF_UTILS_SOURCES})
+add_tf_example(load_graph src/load_graph.cpp)
+add_tf_example(interface src/interface.cpp ${TF_UTILS_SOURCES})
+add_tf_example(graph_info src/graph_info.cpp ${TF_UTILS_SOURCES})
+add_tf_example(create_tensor src/create_tensor.cpp)
+add_tf_example(create_string_tensor src/create_string_tensor.cpp)
+add_tf_example(tensor_info src/tensor_info.cpp ${TF_UTILS_SOURCES})
+add_tf_example(allocate_tensor src/allocate_tensor.cpp)
+add_tf_example(batch_interface src/batch_interface.cpp ${TF_UTILS_SOURCES})
 
 configure_file(models/graph.pb ${CMAKE_CURRENT_BINARY_DIR}/graph.pb COPYONLY)
 

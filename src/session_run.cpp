@@ -1,6 +1,6 @@
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018 - 2024 Daniil Goncharov <neargye@gmail.com>.
+// Copyright (c) 2018 - 2026 Daniil Goncharov <neargye@gmail.com>.
 //
 // Permission is hereby  granted, free of charge, to any  person obtaining a copy
 // of this software and associated  documentation files (the "Software"), to deal
@@ -51,6 +51,10 @@ int main() {
 
   auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); }; // Auto-delete on scope exit.
+  if (input_tensor == nullptr) {
+    std::cout << "Can't create input tensor" << std::endl;
+    return 8;
+  }
 
   auto out_op = TF_Output{TF_GraphOperationByName(graph, "output_node0"), 0};
   if (out_op.oper == nullptr) {
@@ -66,6 +70,12 @@ int main() {
   auto options = TF_NewSessionOptions();
   auto sess = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
+  MAKE_SCOPE_EXIT(delete_session) {
+    if (sess != nullptr) {
+      TF_CloseSession(sess, status);
+      TF_DeleteSession(sess, status);
+    }
+  };
 
   if (TF_GetCode(status) != TF_OK) {
     return 4;
@@ -96,8 +106,13 @@ int main() {
     std::cout << "Error delete session";
     return 7;
   }
+  delete_session.dismiss();
 
   auto data = static_cast<float*>(TF_TensorData(output_tensor));
+  if (data == nullptr) {
+    std::cout << "Wrong output tensor data";
+    return 9;
+  }
 
   std::cout << "Output vals: " << data[0] << ", " << data[1] << ", " << data[2] << ", " << data[3] << std::endl;
 
