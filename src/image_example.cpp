@@ -46,7 +46,7 @@ TF_Tensor* CreateScalarFloatTensor(float value) {
 TF_Operation* FinishOperation(TF_OperationDescription* desc, TF_Status* status) {
   auto op = TF_FinishOperation(desc, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error finish operation: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to finish operation: " << TF_Message(status) << std::endl;
     return nullptr;
   }
 
@@ -81,7 +81,7 @@ TF_Operation* AddScalarConst(TF_Graph* graph, const char* name, float value, TF_
   TF_SetAttrType(desc, "dtype", TF_FLOAT);
   TF_SetAttrTensor(desc, "value", tensor, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error set const tensor: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to set const tensor: " << TF_Message(status) << std::endl;
     return nullptr;
   }
 
@@ -154,14 +154,14 @@ int main() {
   auto input_tensor = tf_utils::CreateTensor(TF_UINT8, image_dims, pixels);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
   if (input_tensor == nullptr) {
-    std::cout << "Can't create image tensor" << std::endl;
+    std::cout << "Failed to create image tensor" << std::endl;
     return 6;
   }
 
   auto session = tf_utils::CreateSession(graph, status);
   SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr || TF_GetCode(status) != TF_OK) {
-    std::cout << "Can't create session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to create session: " << TF_Message(status) << std::endl;
     return 7;
   }
 
@@ -173,20 +173,20 @@ int main() {
 
   auto code = tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status);
   if (code != TF_OK) {
-    std::cout << "Error run session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to run session: " << TF_Message(status) << std::endl;
     return 8;
   }
 
   auto result = tf_utils::GetTensorData<float>(output_tensors[0]);
   if (result.size() != pixels.size()) {
-    std::cout << "Wrong output image size" << std::endl;
+    std::cout << "Unexpected output image size" << std::endl;
     return 9;
   }
 
   for (std::size_t i = 0; i < pixels.size(); ++i) {
     const auto expected = static_cast<float>(pixels[i]) / 255.0f;
     if (!AlmostEqual(result[i], expected)) {
-      std::cout << "Wrong normalized value for pixel element: " << i << std::endl;
+      std::cout << "Unexpected normalized value for pixel element: " << i << std::endl;
       return 10;
     }
   }
@@ -195,7 +195,7 @@ int main() {
             << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
   std::cout << "First pixel normalized RGB: "
             << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
-  std::cout << "Success image processing" << std::endl;
+  std::cout << "Processed image successfully" << std::endl;
 
   return 0;
 }

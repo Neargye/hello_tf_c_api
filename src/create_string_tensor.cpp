@@ -40,37 +40,37 @@ int Run() {
   };
 
   auto tensor = tf_utils::CreateStringTensor(dims, owned_tokens);
-  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
 
   if (tensor == nullptr) {
-    std::cout << "Wrong create string tensor" << std::endl;
+    std::cout << "Failed to create string tensor" << std::endl;
     return 1;
   }
 
   if (TF_TensorType(tensor) != TF_STRING) {
-    std::cout << "Wrong tensor type" << std::endl;
+    std::cout << "Unexpected tensor type" << std::endl;
     return 2;
   }
 
   if (TF_NumDims(tensor) != static_cast<int>(dims.size())) {
-    std::cout << "Wrong number of dimensions" << std::endl;
+    std::cout << "Unexpected number of dimensions" << std::endl;
     return 3;
   }
 
   for (std::size_t i = 0; i < dims.size(); ++i) {
     if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
-      std::cout << "Wrong dimension size for dim: " << i << std::endl;
+      std::cout << "Unexpected dimension size for dim: " << i << std::endl;
       return 4;
     }
   }
 
   if (TF_TensorByteSize(tensor) != owned_tokens.size() * sizeof(TF_TString)) {
-    std::cout << "Wrong tensor byte size" << std::endl;
+    std::cout << "Unexpected tensor byte size" << std::endl;
     return 5;
   }
 
   if (TF_TensorData(tensor) == nullptr) {
-    std::cout << "Wrong string tensor data" << std::endl;
+    std::cout << "String tensor data is null" << std::endl;
     return 6;
   }
 
@@ -81,10 +81,10 @@ int Run() {
       return 7;
     }
 
-    std::cout << "p " << i << " == " << value << " len = " << value.size() << std::endl;
+    std::cout << "Element " << i << ": " << value << " (len = " << value.size() << ")" << std::endl;
   }
 
-  std::cout << "Success create string tensor" << std::endl;
+  std::cout << "Created string tensor successfully" << std::endl;
 
   return 0;
 }

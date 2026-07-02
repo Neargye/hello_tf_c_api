@@ -31,19 +31,19 @@ int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
-    std::cout << "Can't load graph" << std::endl;
+    std::cout << "Failed to load graph" << std::endl;
     return 1;
   }
 
   const auto input = TF_Output{TF_GraphOperationByName(graph, "input_4"), 0};
   if (input.oper == nullptr) {
-    std::cout << "Can't init input" << std::endl;
+    std::cout << "Failed to find input operation" << std::endl;
     return 2;
   }
 
   const auto output = TF_Output{TF_GraphOperationByName(graph, "output_node0"), 0};
   if (output.oper == nullptr) {
-    std::cout << "Can't init output" << std::endl;
+    std::cout << "Failed to find output operation" << std::endl;
     return 3;
   }
 
@@ -53,7 +53,7 @@ int main() {
   auto session = tf_utils::CreateSession(graph, status);
   SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr || TF_GetCode(status) != TF_OK) {
-    std::cout << "Can't create session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to create session: " << TF_Message(status) << std::endl;
     return 4;
   }
 
@@ -62,7 +62,7 @@ int main() {
   auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_values);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
   if (input_tensor == nullptr) {
-    std::cout << "Can't create input tensor" << std::endl;
+    std::cout << "Failed to create input tensor" << std::endl;
     return 5;
   }
 
@@ -77,7 +77,7 @@ int main() {
     }
 
     if (!tf_utils::SetTensorData(input_tensor, input_values)) {
-      std::cout << "Can't update input tensor" << std::endl;
+      std::cout << "Failed to update input tensor" << std::endl;
       return 6;
     }
 
@@ -86,25 +86,25 @@ int main() {
 
     const auto code = tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status);
     if (code != TF_OK) {
-      std::cout << "Error run session: " << TF_Message(status) << std::endl;
+      std::cout << "Failed to run session: " << TF_Message(status) << std::endl;
       return 7;
     }
 
     last_result = tf_utils::GetTensorData<float>(output_tensors[0]);
     if (last_result.size() != 4) {
-      std::cout << "Wrong output tensor size" << std::endl;
+      std::cout << "Unexpected output tensor size" << std::endl;
       return 8;
     }
     for (const auto value : last_result) {
       if (!std::isfinite(value)) {
-        std::cout << "Wrong output tensor value" << std::endl;
+        std::cout << "Unexpected output tensor value" << std::endl;
         return 9;
       }
     }
   }
 
   std::cout << "Ran repeated inference 10 times" << std::endl;
-  std::cout << "Last output vals: "
+  std::cout << "Last output values: "
             << last_result[0] << ", " << last_result[1] << ", "
             << last_result[2] << ", " << last_result[3] << std::endl;
 

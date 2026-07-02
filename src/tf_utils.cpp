@@ -193,7 +193,7 @@ TF_Tensor* ScalarStringTensor(const char* str, TF_Status*) {
   return CreateStringTensor(nullptr, 0, &value, 1);
 }
 
-} // namespace tf_utils::
+} // namespace
 
 TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_Status* status) {
   if (graph_path == nullptr) {
@@ -288,7 +288,7 @@ TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status
     delete_status.dismiss();
   }
 
-  MAKE_SCOPE_EXIT(delete_options){ DeleteSessionOptions(options);};
+  MAKE_SCOPE_EXIT(delete_options){ DeleteSessionOptions(options); };
   if (options == nullptr) {
     options = TF_NewSessionOptions();
   } else {
@@ -598,17 +598,17 @@ TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* s
 
   auto options = TF_NewSessionOptions();
 
-  // The following is an equivalent of setting this in Python:
+  // This matches the following Python configuration:
   // config = tf.ConfigProto( allow_soft_placement = True )
   // config.gpu_options.allow_growth = True
   // config.gpu_options.per_process_gpu_memory_fraction = percentage
-  // Create a byte-array for the serialized ProtoConfig, set the mandatory bytes (first three and last four)
+  // Create the serialized ProtoConfig byte array with the fixed bytes already set.
   std::array<std::uint8_t, 15> config = {{0x32, 0xb, 0x9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x1, 0x38, 0x1}};
 
-  // Convert the desired percentage into a byte-array.
+  // Convert the desired percentage into bytes.
   auto bytes = reinterpret_cast<std::uint8_t*>(&gpu_memory_fraction);
 
-  // Put it to the config byte-array, from 3 to 10:
+  // Store the percentage bytes in positions 3 through 10.
   for (std::size_t i = 0; i < sizeof(gpu_memory_fraction); ++i) {
     config[i + 3] = bytes[i];
   }

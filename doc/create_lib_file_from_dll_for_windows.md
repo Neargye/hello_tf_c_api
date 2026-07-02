@@ -1,11 +1,8 @@
-# Create a .lib file from a .dll on Windows
+# Create a Windows .lib import library from a DLL
 
-This project normally does not need this step. CMake finds the TensorFlow import
-library from the TensorFlow Python wheel and copies the required runtime DLLs to
-the build output directories.
+This project usually does not need this step. CMake finds the TensorFlow import library from the TensorFlow Python wheel and copies the required runtime DLLs to the build output directories.
 
-Use this document only when you have a standalone TensorFlow DLL but no matching
-import library.
+Use this document only when you have a standalone TensorFlow DLL but no matching import library.
 
 Open the Visual Studio Developer Command Prompt and list exported functions:
 
@@ -13,8 +10,7 @@ Open the Visual Studio Developer Command Prompt and list exported functions:
 dumpbin /exports path\to\tensorflow.dll
 ```
 
-Copy only the exported function names into a definition file. The file must
-start with `EXPORTS`:
+Copy only the exported function names into a definition file. The file must start with `EXPORTS`:
 
 ```text
 EXPORTS
@@ -32,5 +28,4 @@ Create the import library with the Visual Studio `lib` tool:
 lib /def:path\to\tensorflow.def /OUT:path\to\tensorflow.lib /MACHINE:X64
 ```
 
-Use the generated `.lib` during linking and keep the matching `.dll` in the
-executable output directory or in a directory listed in `%PATH%`.
+Use the generated `.lib` during linking and keep the matching `.dll` in the executable output directory or in a directory listed in `%PATH%`.

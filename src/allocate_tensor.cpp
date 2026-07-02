@@ -54,41 +54,41 @@ int main() {
   };
 
   auto tensor = TF_AllocateTensor(TF_FLOAT, dims.data(), static_cast<int>(dims.size()), data_size);
-  SCOPE_EXIT{ TF_DeleteTensor(tensor); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor != nullptr && TF_TensorData(tensor) != nullptr) {
     std::memcpy(TF_TensorData(tensor), data.data(), std::min(data_size, TF_TensorByteSize(tensor)));
   } else {
-    std::cout << "Wrong create tensor" << std::endl;
+    std::cout << "Failed to create tensor" << std::endl;
     return 1;
   }
 
   if (TF_TensorType(tensor) != TF_FLOAT) {
-    std::cout << "Wrong tensor type" << std::endl;
+    std::cout << "Unexpected tensor type" << std::endl;
     return 2;
   }
 
   if (TF_NumDims(tensor) != static_cast<int>(dims.size())) {
-    std::cout << "Wrong number of dimensions" << std::endl;
+    std::cout << "Unexpected number of dimensions" << std::endl;
     return 3;
   }
 
   for (std::size_t i = 0; i < dims.size(); ++i) {
     if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
-      std::cout << "Wrong dimension size for dim: " << i << std::endl;
+      std::cout << "Unexpected dimension size for dim: " << i << std::endl;
       return 4;
     }
   }
 
   if (TF_TensorByteSize(tensor) != data_size) {
-    std::cout << "Wrong tensor byte size" << std::endl;
+    std::cout << "Unexpected tensor byte size" << std::endl;
     return 5;
   }
 
   auto tensor_data = static_cast<float*>(TF_TensorData(tensor));
 
   if (tensor_data == nullptr) {
-    std::cout << "Wrong data tensor" << std::endl;
+    std::cout << "Tensor data is null" << std::endl;
     return 6;
   }
 
@@ -99,7 +99,7 @@ int main() {
     }
   }
 
-  std::cout << "Success allocate tensor" << std::endl;
+  std::cout << "Allocated tensor successfully" << std::endl;
 
   return 0;
 }

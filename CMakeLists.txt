@@ -41,7 +41,7 @@ if(NOT EXISTS "${TENSORFLOW_VERSION_STAMP}")
         RESULT_VARIABLE tensorflow_install_result
     )
     if(NOT tensorflow_install_result EQUAL 0)
-        message(FATAL_ERROR "error installing TensorFlow ${TENSORFLOW_VERSION} wheel into ${TENSORFLOW_PIP_TARGET}")
+        message(FATAL_ERROR "Failed to install TensorFlow ${TENSORFLOW_VERSION} wheel into ${TENSORFLOW_PIP_TARGET}")
     endif()
 
     file(WRITE "${TENSORFLOW_VERSION_STAMP}" "${TENSORFLOW_VERSION}\n")

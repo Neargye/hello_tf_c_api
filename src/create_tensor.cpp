@@ -40,7 +40,7 @@
 
 static void DeallocateTensor(void* data, std::size_t, void*) {
   std::free(data);
-  std::cout << "Deallocate tensor" << std::endl;
+  std::cout << "Deallocated tensor" << std::endl;
 }
 
 int main() {
@@ -50,7 +50,7 @@ int main() {
 
   auto data = static_cast<float*>(std::malloc(data_size));
   if (data == nullptr) {
-    std::cout << "Wrong allocate tensor data" << std::endl;
+    std::cout << "Failed to allocate tensor data" << std::endl;
     return 1;
   }
 
@@ -62,45 +62,45 @@ int main() {
     -0.4807833f, -0.3775733f, 0.1748378f, 0.7718275f, -0.4073670f, 0.0107582f, 0.0062978f, 0.9131795f, 0.7187147f, -0.0394935f, 0.1184392f, -0.6840039f,
   };
 
-  std::copy(vals.begin(), vals.end(), data); // init input_vals.
+  std::copy(vals.begin(), vals.end(), data);
 
   auto tensor = TF_NewTensor(TF_FLOAT,
                              dims.data(), static_cast<int>(dims.size()),
                              data, data_size,
                              DeallocateTensor, nullptr);
-  SCOPE_EXIT{ TF_DeleteTensor(tensor); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor == nullptr) {
-    std::cout << "Wrong create tensor" << std::endl;
+    std::cout << "Failed to create tensor" << std::endl;
     return 1;
   }
 
   if (TF_TensorType(tensor) != TF_FLOAT) {
-    std::cout << "Wrong tensor type" << std::endl;
+    std::cout << "Unexpected tensor type" << std::endl;
     return 2;
   }
 
   if (TF_NumDims(tensor) != static_cast<int>(dims.size())) {
-    std::cout << "Wrong number of dimensions" << std::endl;
+    std::cout << "Unexpected number of dimensions" << std::endl;
     return 3;
   }
 
   for (std::size_t i = 0; i < dims.size(); ++i) {
     if (TF_Dim(tensor, static_cast<int>(i)) != dims[i]) {
-      std::cout << "Wrong dimension size for dim: " << i << std::endl;
+      std::cout << "Unexpected dimension size for dim: " << i << std::endl;
       return 4;
     }
   }
 
   if (TF_TensorByteSize(tensor) != data_size) {
-    std::cout << "Wrong tensor byte size" << std::endl;
+    std::cout << "Unexpected tensor byte size" << std::endl;
     return 5;
   }
 
   auto tensor_data = static_cast<float*>(TF_TensorData(tensor));
 
   if (tensor_data == nullptr) {
-    std::cout << "Wrong data tensor" << std::endl;
+    std::cout << "Tensor data is null" << std::endl;
     return 6;
   }
 
@@ -111,7 +111,7 @@ int main() {
     }
   }
 
-  std::cout << "Success creat tensor" << std::endl;
+  std::cout << "Created tensor successfully" << std::endl;
 
   return 0;
 }

@@ -41,7 +41,7 @@ static void DeallocateBuffer(void* data, size_t) {
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
   std::ifstream f(file, std::ios::binary);
-  SCOPE_EXIT{ f.close(); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ f.close(); };
   if (f.fail() || !f.is_open()) {
     return nullptr;
   }
@@ -84,14 +84,14 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 int main() {
   auto buffer = ReadBufferFromFile("graph.pb");
   if (buffer == nullptr) {
-    std::cout << "Can't read buffer from file" << std::endl;
+    std::cout << "Failed to read graph.pb" << std::endl;
     return 1;
   }
 
   auto graph = TF_NewGraph();
-  SCOPE_EXIT{ TF_DeleteGraph(graph); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   auto opts = TF_NewImportGraphDefOptions();
 
   TF_GraphImportGraphDef(graph, buffer, opts, status);
@@ -99,11 +99,11 @@ int main() {
   TF_DeleteBuffer(buffer);
 
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Can't import GraphDef" << std::endl;
+    std::cout << "Failed to import GraphDef" << std::endl;
     return 2;
   }
 
-  std::cout << "Load graph success" << std::endl;
+  std::cout << "Loaded graph successfully" << std::endl;
 
   return 0;
 }

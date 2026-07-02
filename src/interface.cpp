@@ -28,9 +28,9 @@
 
 int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
-  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
-    std::cout << "Can't load graph" << std::endl;
+    std::cout << "Failed to load graph" << std::endl;
     return 1;
   }
 
@@ -45,30 +45,30 @@ int main() {
 
   const std::vector<TF_Output> input_ops = {{TF_GraphOperationByName(graph, "input_4"), 0}};
   if (input_ops[0].oper == nullptr) {
-    std::cout << "Can't init input_op" << std::endl;
+    std::cout << "Failed to find input operation" << std::endl;
     return 3;
   }
 
   const std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals)};
-  SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); };
   if (input_tensors[0] == nullptr) {
-    std::cout << "Can't create input tensor" << std::endl;
+    std::cout << "Failed to create input tensor" << std::endl;
     return 4;
   }
 
   const std::vector<TF_Output> out_ops = {{TF_GraphOperationByName(graph, "output_node0"), 0}};
   if (out_ops[0].oper == nullptr) {
-    std::cout << "Can't init out_op" << std::endl;
+    std::cout << "Failed to find output operation" << std::endl;
     return 5;
   }
 
   std::vector<TF_Tensor*> output_tensors = {nullptr};
-  SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); };
 
   auto session = tf_utils::CreateSession(graph);
-  SCOPE_EXIT{ tf_utils::DeleteSession(session); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr) {
-    std::cout << "Can't create session" << std::endl;
+    std::cout << "Failed to create session" << std::endl;
     return 2;
   }
 
@@ -77,12 +77,12 @@ int main() {
   if (code == TF_OK) {
     auto result = tf_utils::GetTensorData<float>(output_tensors[0]);
     if (result.size() < 4) {
-      std::cout << "Wrong output tensor data" << std::endl;
+      std::cout << "Unexpected output tensor data" << std::endl;
       return 6;
     }
-    std::cout << "Output vals: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
+    std::cout << "Output values: " << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << std::endl;
   } else {
-    std::cout << "Error run session TF_CODE: " << code;
+    std::cout << "Failed to run session. TF_Code: " << code << std::endl;
     return code;
   }
 

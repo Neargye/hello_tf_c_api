@@ -46,14 +46,14 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
     auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
 
     if (TF_GetCode(status) != TF_OK) {
-      std::cout << "Can't get tensor dimensionality" << std::endl;
+      std::cout << "Failed to get tensor dimensionality" << std::endl;
       continue;
     }
 
     std::cout << " dims: " << num_dims;
 
     if (num_dims <= 0) {
-      std::cout << " []" << std::endl;;
+      std::cout << " []" << std::endl;
       continue;
     }
 
@@ -63,7 +63,7 @@ void PrintOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
     TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
 
     if (TF_GetCode(status) != TF_OK) {
-      std::cout << "Can't get get tensor shape" << std::endl;
+      std::cout << "Failed to get tensor shape" << std::endl;
       continue;
     }
 
@@ -83,7 +83,7 @@ void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status)
   auto op = TF_GraphOperationByName(graph, layer_name);
 
   if (op == nullptr) {
-    std::cout << "Could not get " << layer_name << std::endl;
+    std::cout << "Could not find operation: " << layer_name << std::endl;
     return;
   }
 
@@ -98,14 +98,14 @@ void PrintTensorInfo(TF_Graph* graph, const char* layer_name, TF_Status* status)
 
 int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
-  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
-    std::cout << "Can't load graph" << std::endl;
+    std::cout << "Failed to load graph" << std::endl;
     return 1;
   }
 
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
 
   PrintTensorInfo(graph, "input_4", status);
   std::cout << std::endl;

@@ -1,8 +1,8 @@
-# Example TensorFlow C API
+# TensorFlow C API Examples
 
-![Example TensorFlow C API Logo](logo.png)
+![TensorFlow C API Examples logo](logo.png)
 
-Example how to run TensorFlow C API on Windows, Linux and macOS (Darwin).
+A small cross-platform set of TensorFlow C API examples for Windows, Linux, and macOS.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ Example how to run TensorFlow C API on Windows, Linux and macOS (Darwin).
 * Python with pip. CI uses Python 3.12.
 * 64-bit target platform.
 
-## [Example](src/)
+## [Examples](src/)
 
 * [Hello TF](src/hello_tf.cpp)
 * [Load graph](src/load_graph.cpp)
@@ -28,7 +28,7 @@ Example how to run TensorFlow C API on Windows, Linux and macOS (Darwin).
 * [Tensor Info](src/tensor_info.cpp)
 * [Graph Info](src/graph_info.cpp)
 
-## Build example
+## Build and test
 
 ### Windows
 
@@ -54,7 +54,7 @@ cmake --build . -j 4
 ctest --output-on-failure
 ```
 
-### macOS (Darwin)
+### macOS
 
 ```text
 git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
@@ -66,9 +66,9 @@ cmake --build . --config Release
 ctest --output-on-failure -C Release
 ```
 
-### Remarks
+### Notes
 
-* CMake downloads TensorFlow 2.21.0 from the Python wheel into hello_tf_c_api/tensorflow/python. It does not install TensorFlow into the system Python.
+* CMake downloads TensorFlow 2.21.0 from the Python wheel into `hello_tf_c_api/tensorflow/python`. It does not install TensorFlow into the system Python.
 * Python with pip is required during CMake configure.
 * The small GraphDef used by graph and session examples is committed as `models/graph.pb`; no external model download is required.
 * To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a virtual environment with a full TensorFlow Python package installed.
@@ -78,7 +78,7 @@ ctest --output-on-failure -C Release
 
 ## TensorFlow library
 
-This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local tensorflow/python directory. The CMake file creates an imported `tensorflow` target and copies required runtime libraries where needed.
+This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local `tensorflow/python` directory. The CMake file creates an imported `tensorflow` target and copies required runtime libraries where needed.
 
 If you want to link TensorFlow manually, use the headers from:
 
@@ -95,9 +95,9 @@ tensorflow/python/tensorflow/python
 
 For standalone C API packages, you can also download the TensorFlow C library from https://www.tensorflow.org/install/lang_c.
 
-Or build the library version you need from sources, with CPU or GPU support.
+You can also build the TensorFlow library version you need from source, with CPU or GPU support.
 
-### Link TensorFlow lib
+### Use TensorFlow in another CMake project
 
 #### CMakeLists.txt
 
@@ -114,27 +114,26 @@ target_include_directories(<target> PRIVATE path/to/tensorflow/include)
 target_link_libraries(<target> PRIVATE path/to/tensorflow/library)
 ```
 
-#### Visual Studio
+### Use TensorFlow in Visual Studio
 
-"Project" -> "Properties" -> "Configuration Properties" -> "C/C++" -> "Additional Include Directories" and add the TensorFlow include path.
+Open "Project" -> "Properties" -> "Configuration Properties" -> "C/C++" -> "Additional Include Directories" and add the TensorFlow include path.
 
-"Project" -> "Properties" -> "Configuration Properties" -> "Linker" -> "Additional Dependencies" and add the TensorFlow import library path.
+Open "Project" -> "Properties" -> "Configuration Properties" -> "Linker" -> "Additional Dependencies" and add the TensorFlow import library path.
 
 Make sure that the TensorFlow DLLs are in the output directory or in a directory contained by the `%PATH%` environment variable.
 
-### [Here’s an example how to prepare models](doc/prepare_models.md)
+### [Prepare models](doc/prepare_models.md)
 
 This repository already includes the demo `models/graph.pb` used by the examples. For your own models, prefer a TensorFlow 2 SavedModel export, or use a small inference-only GraphDef when you want the same import path as these examples.
 
-### [Here’s an example how to optimize models and examples](doc/optimizing.md)
+### [Optimize models and examples](doc/optimizing.md)
 
-### [Here’s a fallback for creating a tensorflow.lib file from tensorflow.dll for Windows](doc/create_lib_file_from_dll_for_windows.md)
+### [Create a Windows import library from a TensorFlow DLL](doc/create_lib_file_from_dll_for_windows.md)
 
-### __Few articles with details__
+### Further reading
 
 * https://www.tensorflow.org/install/lang_c
 * https://www.tensorflow.org/guide/saved_model
 * https://www.tensorflow.org/lite/performance/model_optimization
-
 
 ## Licensed under the [MIT License](LICENSE)

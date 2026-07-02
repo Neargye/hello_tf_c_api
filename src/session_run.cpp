@@ -28,15 +28,15 @@
 
 int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
-  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
   if (graph == nullptr) {
-    std::cout << "Can't load graph" << std::endl;
+    std::cout << "Failed to load graph" << std::endl;
     return 1;
   }
 
   auto input_op = TF_Output{TF_GraphOperationByName(graph, "input_4"), 0};
   if (input_op.oper == nullptr) {
-    std::cout << "Can't init input_op" << std::endl;
+    std::cout << "Failed to find input operation" << std::endl;
     return 2;
   }
 
@@ -51,23 +51,23 @@ int main() {
 
 
   auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_vals);
-  SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
   if (input_tensor == nullptr) {
-    std::cout << "Can't create input tensor" << std::endl;
+    std::cout << "Failed to create input tensor" << std::endl;
     return 8;
   }
 
   auto out_op = TF_Output{TF_GraphOperationByName(graph, "output_node0"), 0};
   if (out_op.oper == nullptr) {
-    std::cout << "Can't init out_op" << std::endl;
+    std::cout << "Failed to find output operation" << std::endl;
     return 3;
   }
 
   TF_Tensor* output_tensor = nullptr;
-  SCOPE_EXIT{ tf_utils::DeleteTensor(output_tensor); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ tf_utils::DeleteTensor(output_tensor); };
 
   auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); }; // Auto-delete on scope exit.
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
   auto options = TF_NewSessionOptions();
   auto sess = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
@@ -92,30 +92,30 @@ int main() {
                 );
 
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error run session";
+    std::cout << "Failed to run session" << std::endl;
     return 5;
   }
 
   TF_CloseSession(sess, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error close session";
+    std::cout << "Failed to close session" << std::endl;
     return 6;
   }
 
   TF_DeleteSession(sess, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error delete session";
+    std::cout << "Failed to delete session" << std::endl;
     return 7;
   }
   delete_session.dismiss();
 
   auto data = static_cast<float*>(TF_TensorData(output_tensor));
   if (data == nullptr) {
-    std::cout << "Wrong output tensor data";
+    std::cout << "Output tensor data is null" << std::endl;
     return 9;
   }
 
-  std::cout << "Output vals: " << data[0] << ", " << data[1] << ", " << data[2] << ", " << data[3] << std::endl;
+  std::cout << "Output values: " << data[0] << ", " << data[1] << ", " << data[2] << ", " << data[3] << std::endl;
 
   return 0;
 }

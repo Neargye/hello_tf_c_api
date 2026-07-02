@@ -32,7 +32,7 @@ namespace {
 TF_Operation* FinishOperation(TF_OperationDescription* desc, TF_Status* status) {
   auto op = TF_FinishOperation(desc, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error finish operation: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to finish operation: " << TF_Message(status) << std::endl;
     return nullptr;
   }
 
@@ -52,7 +52,7 @@ TF_Operation* AddScalarConst(TF_Graph* graph, const char* name, float value, TF_
   TF_SetAttrType(desc, "dtype", TF_FLOAT);
   TF_SetAttrTensor(desc, "value", tensor, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error set const tensor: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to set const tensor: " << TF_Message(status) << std::endl;
     return nullptr;
   }
 
@@ -113,13 +113,13 @@ float ReadScalar(TF_Session* session, TF_Output output, TF_Status* status) {
 
   const auto code = tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status);
   if (code != TF_OK || output_tensors[0] == nullptr) {
-    std::cout << "Error read scalar: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to read scalar: " << TF_Message(status) << std::endl;
     return 0.0f;
   }
 
   const auto values = tf_utils::GetTensorData<float>(output_tensors[0]);
   if (values.size() != 1) {
-    std::cout << "Wrong scalar output size" << std::endl;
+    std::cout << "Unexpected scalar output size" << std::endl;
     return 0.0f;
   }
 
@@ -168,7 +168,7 @@ int main() {
   auto session = tf_utils::CreateSession(graph, status);
   SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr || TF_GetCode(status) != TF_OK) {
-    std::cout << "Can't create session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to create session: " << TF_Message(status) << std::endl;
     return 7;
   }
 
@@ -184,13 +184,13 @@ int main() {
                                    init_targets,
                                    status);
   if (code != TF_OK) {
-    std::cout << "Error run init target: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to run init target: " << TF_Message(status) << std::endl;
     return 8;
   }
 
   const auto initial = ReadScalar(session, TF_Output{read_op, 0}, status);
   if (!AlmostEqual(initial, 0.0f)) {
-    std::cout << "Wrong initial value: " << initial << std::endl;
+    std::cout << "Unexpected initial value: " << initial << std::endl;
     return 9;
   }
 
@@ -203,7 +203,7 @@ int main() {
     auto delta_tensor = tf_utils::CreateTensor(TF_FLOAT, scalar_dims, delta_value);
     SCOPE_EXIT{ tf_utils::DeleteTensor(delta_tensor); };
     if (delta_tensor == nullptr) {
-      std::cout << "Can't create delta tensor" << std::endl;
+      std::cout << "Failed to create delta tensor" << std::endl;
       return 10;
     }
 
@@ -214,20 +214,20 @@ int main() {
                                 train_targets,
                                 status);
     if (code != TF_OK) {
-      std::cout << "Error run train target: " << TF_Message(status) << std::endl;
+      std::cout << "Failed to run train target: " << TF_Message(status) << std::endl;
       return 11;
     }
   }
 
   const auto trained = ReadScalar(session, TF_Output{read_op, 0}, status);
   if (!AlmostEqual(trained, 4.5f)) {
-    std::cout << "Wrong trained value: " << trained << std::endl;
+    std::cout << "Unexpected trained value: " << trained << std::endl;
     return 12;
   }
 
   std::cout << "Initial value: " << initial << std::endl;
   std::cout << "Value after running train_step target 3 times: " << trained << std::endl;
-  std::cout << "Success run target operation" << std::endl;
+  std::cout << "Ran target operation successfully" << std::endl;
 
   return 0;
 }

@@ -36,7 +36,7 @@ namespace {
 TF_Operation* FinishOperation(TF_OperationDescription* desc, TF_Status* status) {
   auto op = TF_FinishOperation(desc, status);
   if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Error finish operation: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to finish operation: " << TF_Message(status) << std::endl;
     return nullptr;
   }
 
@@ -88,13 +88,13 @@ std::vector<float> FlattenFloatImage(const cv::Mat& image) {
 int main(int argc, char** argv) {
   const std::string image_path = argc > 1 ? argv[1] : "opencv_image_file_example.png";
   if (argc <= 1 && !WriteSampleImage(image_path)) {
-    std::cout << "Can't write sample image file" << std::endl;
+    std::cout << "Failed to write sample image file" << std::endl;
     return 1;
   }
 
   auto bgr_image = cv::imread(image_path, cv::IMREAD_COLOR);
   if (bgr_image.empty()) {
-    std::cout << "Can't read image file: " << image_path << std::endl;
+    std::cout << "Failed to read image file: " << image_path << std::endl;
     return 2;
   }
 
@@ -131,14 +131,14 @@ int main(int argc, char** argv) {
   auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, image_dims, image_values);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
   if (input_tensor == nullptr) {
-    std::cout << "Can't create image tensor" << std::endl;
+    std::cout << "Failed to create image tensor" << std::endl;
     return 5;
   }
 
   auto session = tf_utils::CreateSession(graph, status);
   SCOPE_EXIT{ tf_utils::DeleteSession(session); };
   if (session == nullptr || TF_GetCode(status) != TF_OK) {
-    std::cout << "Can't create session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to create session: " << TF_Message(status) << std::endl;
     return 6;
   }
 
@@ -150,19 +150,19 @@ int main(int argc, char** argv) {
 
   const auto code = tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status);
   if (code != TF_OK) {
-    std::cout << "Error run session: " << TF_Message(status) << std::endl;
+    std::cout << "Failed to run session: " << TF_Message(status) << std::endl;
     return 7;
   }
 
   const auto result = tf_utils::GetTensorData<float>(output_tensors[0]);
   if (result.size() != image_values.size()) {
-    std::cout << "Wrong output image size" << std::endl;
+    std::cout << "Unexpected output image size" << std::endl;
     return 8;
   }
 
   for (std::size_t i = 0; i < image_values.size(); ++i) {
     if (!AlmostEqual(result[i], image_values[i])) {
-      std::cout << "Wrong output image value for element: " << i << std::endl;
+      std::cout << "Unexpected output image value for element: " << i << std::endl;
       return 9;
     }
   }
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
             << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
   std::cout << "First pixel normalized RGB: "
             << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
-  std::cout << "Success OpenCV image file processing" << std::endl;
+  std::cout << "Processed OpenCV image file successfully" << std::endl;
 
   return 0;
 }
