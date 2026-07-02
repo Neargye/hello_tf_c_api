@@ -18,6 +18,7 @@ Example how to run TensorFlow C API on Windows, Linux and macOS (Darwin).
 * [Create Tensor](src/create_tensor.cpp)
 * [Create String Tensor](src/create_string_tensor.cpp)
 * [Image processing](src/image_example.cpp)
+* [Run target operation](src/target_operation.cpp)
 * [OpenCV image file processing](src/opencv_image_file_example.cpp) (optional, requires OpenCV)
 * [Allocate Tensor](src/allocate_tensor.cpp)
 * [Run session](src/session_run.cpp)

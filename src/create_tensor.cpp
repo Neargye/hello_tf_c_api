@@ -32,10 +32,11 @@
 
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <scope_guard.hpp>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
-#include <vector>
 #include <numeric>
+#include <vector>
 
 static void DeallocateTensor(void* data, std::size_t, void*) {
   std::free(data);
@@ -44,7 +45,8 @@ static void DeallocateTensor(void* data, std::size_t, void*) {
 
 int main() {
   const std::vector<std::int64_t> dims = {1, 5, 12};
-  const auto data_size = std::accumulate(dims.begin(), dims.end(), sizeof(float), std::multiplies<std::int64_t>{});
+  const auto element_count = std::accumulate(dims.begin(), dims.end(), std::int64_t{1}, std::multiplies<std::int64_t>{});
+  const auto data_size = static_cast<std::size_t>(element_count) * sizeof(float);
 
   auto data = static_cast<float*>(std::malloc(data_size));
   if (data == nullptr) {

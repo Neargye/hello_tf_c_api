@@ -80,6 +80,12 @@ TF_Operation* AddFloatConst(TF_Graph* graph, const char* name, float value, TF_S
   return TF_FinishOperation(desc, status);
 }
 
+TF_Operation* AddNoOp(TF_Graph* graph, const char* name, TF_Status* status) {
+  auto desc = TF_NewOperation(graph, "NoOp", name);
+
+  return TF_FinishOperation(desc, status);
+}
+
 } // namespace
 
 TEST_CASE("Hello TF C API") {
@@ -247,6 +253,48 @@ TEST_CASE("RunSession raw overload accepts zero input count with null input arra
   CHECK(TF_GetCode(status) == TF_OK);
   REQUIRE(output_tensor != nullptr);
   CHECK(tf_utils::GetTensorData<float>(output_tensor) == std::vector<float>{42.0f});
+}
+
+TEST_CASE("RunSession runs target operations through vector overload") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto target = AddNoOp(graph, "target_noop", status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(target != nullptr);
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  const std::vector<TF_Output> inputs = {};
+  const std::vector<TF_Tensor*> input_tensors = {};
+  const std::vector<TF_Output> outputs = {};
+  std::vector<TF_Tensor*> output_tensors = {};
+  const std::vector<const TF_Operation*> targets = {target};
+
+  CHECK(tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, targets, status) == TF_OK);
+  CHECK(TF_GetCode(status) == TF_OK);
+}
+
+TEST_CASE("RunSession target overload rejects missing target array") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  CHECK(tf_utils::RunSession(session, nullptr, nullptr, 0, nullptr, nullptr, 0, nullptr, 1, status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_OK);
 }
 
 TEST_CASE("CreateStringTensor validates shape and round-trips embedded nulls") {

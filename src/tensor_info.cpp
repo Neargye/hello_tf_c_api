@@ -22,9 +22,10 @@
 
 #include "tf_utils.hpp"
 #include <scope_guard.hpp>
+#include <cstdint>
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 void PrintInputs(TF_Graph*, TF_Operation* op) {
   auto num_inputs = TF_OperationNumInputs(op);

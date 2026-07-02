@@ -26,6 +26,8 @@ add_test(NAME create_string_tensor.t COMMAND create_string_tensor)
 
 add_test(NAME image_example.t COMMAND image_example)
 
+add_test(NAME target_operation.t COMMAND target_operation)
+
 if(HELLO_TF_HAS_OPENCV_IMAGE_FILE_EXAMPLE)
   add_test(NAME opencv_image_file_example.t COMMAND opencv_image_file_example)
 endif()

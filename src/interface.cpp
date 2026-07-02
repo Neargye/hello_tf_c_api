@@ -22,6 +22,7 @@
 
 #include "tf_utils.hpp"
 #include <scope_guard.hpp>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
