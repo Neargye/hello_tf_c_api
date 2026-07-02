@@ -61,6 +61,7 @@ unset(TENSORFLOW_LIBRARY CACHE)
 unset(TENSORFLOW_FRAMEWORK_LIBRARY CACHE)
 unset(TENSORFLOW_RUNTIME_LIBRARY CACHE)
 unset(TENSORFLOW_FRAMEWORK_RUNTIME_LIBRARY CACHE)
+unset(PYTHON_RUNTIME_LIBRARY CACHE)
 
 if(WIN32)
     find_library(TENSORFLOW_LIBRARY
@@ -91,8 +92,15 @@ if(WIN32)
         NO_DEFAULT_PATH
     )
     get_filename_component(TENSORFLOW_PYTHON_DIR "${TENSORFLOW_PYTHON_EXECUTABLE}" DIRECTORY)
+    set(PYTHON_RUNTIME_LIBRARY_NAMES
+        "python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}.dll"
+        python312.dll
+        python311.dll
+        python310.dll
+    )
+    list(REMOVE_DUPLICATES PYTHON_RUNTIME_LIBRARY_NAMES)
     find_file(PYTHON_RUNTIME_LIBRARY
-        NAMES python312.dll python311.dll python310.dll
+        NAMES ${PYTHON_RUNTIME_LIBRARY_NAMES}
         PATHS "${TENSORFLOW_PYTHON_DIR}"
         NO_DEFAULT_PATH
     )
@@ -204,7 +212,7 @@ if(WIN32)
 endif()
 
 function(target_link_tensorflow target)
-    target_link_libraries(${target} PRIVATE tensorflow ${TENSORFLOW_LINK_LIBRARIES})
+    target_link_libraries(${target} PRIVATE tensorflow)
     if(WIN32)
         add_dependencies(${target} tensorflow_runtime)
     endif()
