@@ -162,6 +162,34 @@ TEST_CASE("Public helpers reject invalid arguments") {
   CHECK(tf_utils::RunSession(nullptr, nullptr, nullptr, 0, nullptr, nullptr, 0) == TF_INVALID_ARGUMENT);
 }
 
+TEST_CASE("CreateSessionOptions helpers create usable TensorFlow session options") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto gpu_options = tf_utils::CreateSessionOptions(0.25, status);
+  SCOPE_EXIT{ tf_utils::DeleteSessionOptions(gpu_options); };
+  REQUIRE(gpu_options != nullptr);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+
+  auto gpu_session = tf_utils::CreateSession(graph, gpu_options, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(gpu_session); };
+  REQUIRE(gpu_session != nullptr);
+  CHECK(TF_GetCode(status) == TF_OK);
+
+  auto thread_options = tf_utils::CreateSessionOptions(std::uint8_t{1}, std::uint8_t{2}, status);
+  SCOPE_EXIT{ tf_utils::DeleteSessionOptions(thread_options); };
+  REQUIRE(thread_options != nullptr);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+
+  auto thread_session = tf_utils::CreateSession(graph, thread_options, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(thread_session); };
+  REQUIRE(thread_session != nullptr);
+  CHECK(TF_GetCode(status) == TF_OK);
+}
+
 TEST_CASE("CreateEmptyTensor supports scalar tensors") {
   const float value = 3.5f;
 
