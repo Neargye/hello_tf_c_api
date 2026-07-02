@@ -69,6 +69,8 @@ ctest --output-on-failure -C Release
 
 * CMake downloads TensorFlow 2.21.0 from the Python wheel into hello_tf_c_api/tensorflow/python. It does not install TensorFlow into the system Python.
 * Python with pip is required during CMake configure.
+* The small GraphDef used by graph and session examples is committed as `models/graph.pb`; no external model download is required.
+* To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a virtual environment with a full TensorFlow Python package installed.
 * OpenCV is optional. If CMake finds it, the OpenCV image-file example is built and tested.
 * On Windows, CMake copies the required TensorFlow runtime DLLs into each target output directory.
 * Tests use [doctest](test/3rdparty/doctest/doctest.h). CI also runs an ASan/UBSan test job on Ubuntu.
@@ -121,17 +123,17 @@ Make sure that the TensorFlow DLLs are in the output directory or in a directory
 
 ### [Here’s an example how to prepare models](doc/prepare_models.md)
 
-To generate the graph.pb file, take a graph definition and a set of checkpoints and freeze them together into a single file.
+This repository already includes the demo `models/graph.pb` used by the examples. For your own models, prefer a TensorFlow 2 SavedModel export, or use a small inference-only GraphDef when you want the same import path as these examples.
 
-### [Here’s an example how to optimize graph](doc/optimizing.md)
+### [Here’s an example how to optimize models and examples](doc/optimizing.md)
 
-### [Here’s an example how to create tensorflow.lib file from tensorflow.dll for Windows](doc/create_lib_file_from_dll_for_windows.md)
+### [Here’s a fallback for creating a tensorflow.lib file from tensorflow.dll for Windows](doc/create_lib_file_from_dll_for_windows.md)
 
 ### __Few articles with details__
 
 * https://www.tensorflow.org/install/lang_c
-* https://medium.com/@vladislavsd/undocumented-tensorflow-c-api-b527c0b4ef6
-* https://medium.com/analytics-vidhya/deploying-tensorflow-2-1-as-c-c-executable-1d090845055c
+* https://www.tensorflow.org/guide/saved_model
+* https://www.tensorflow.org/lite/performance/model_optimization
 
 
 ## Licensed under the [MIT License](LICENSE)
