@@ -41,7 +41,9 @@
 #include "tf_utils.hpp"
 #include <scope_guard.hpp>
 #include <cstdint>
+#include <limits>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -170,6 +172,30 @@ TEST_CASE("CreateEmptyTensor supports scalar tensors") {
   CHECK(TF_NumDims(tensor) == 0);
   CHECK(tf_utils::SetTensorData(tensor, &value, sizeof(value)));
   CHECK(tf_utils::GetTensorData<float>(tensor) == std::vector<float>{value});
+}
+
+TEST_CASE("Public helpers reject dimensions and counts that do not fit TensorFlow C API int parameters") {
+  const auto too_many = static_cast<std::size_t>(std::numeric_limits<int>::max()) + 1;
+  const std::int64_t dim = 1;
+  const std::string_view string_value = "value";
+
+  CHECK(tf_utils::CreateEmptyTensor(TF_FLOAT, &dim, too_many, 0) == nullptr);
+  CHECK(tf_utils::CreateStringTensor(&dim, too_many, &string_value, 1) == nullptr);
+
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  TF_Output input{nullptr, 0};
+  TF_Tensor* input_tensor = nullptr;
+  CHECK(tf_utils::RunSession(session, &input, &input_tensor, too_many, nullptr, nullptr, 0, status) == TF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("GetTensorShape handles unknown rank safely") {
@@ -311,6 +337,29 @@ TEST_CASE("CreateStringTensor validates shape and round-trips embedded nulls") {
   CHECK(TF_TensorType(tensor) == TF_STRING);
   CHECK(tf_utils::GetStringTensorData(tensor) == strings);
   CHECK(tf_utils::GetStringTensorElement(tensor, strings.size()).empty());
+}
+
+TEST_CASE("CreateStringTensor supports scalar and empty strings") {
+  const std::vector<std::int64_t> scalar_dims = {};
+  const std::vector<std::string> scalar_string = {""};
+
+  auto scalar_tensor = tf_utils::CreateStringTensor(scalar_dims, scalar_string);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(scalar_tensor); };
+
+  REQUIRE(scalar_tensor != nullptr);
+  CHECK(TF_TensorType(scalar_tensor) == TF_STRING);
+  CHECK(TF_NumDims(scalar_tensor) == 0);
+  CHECK(tf_utils::GetStringTensorData(scalar_tensor) == scalar_string);
+
+  const std::vector<std::int64_t> dims = {3};
+  const std::vector<std::string> strings = {"", "middle", ""};
+
+  auto tensor = tf_utils::CreateStringTensor(dims, strings);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
+  REQUIRE(tensor != nullptr);
+  CHECK(TF_TensorType(tensor) == TF_STRING);
+  CHECK(tf_utils::GetStringTensorData(tensor) == strings);
 }
 
 TEST_CASE("TF_STRING tensor round-trips through TensorFlow SessionRun") {

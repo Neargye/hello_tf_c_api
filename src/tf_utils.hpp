@@ -33,6 +33,7 @@
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -167,6 +168,9 @@ TF_Tensor* CreateTensor(TF_DataType data_type, const std::vector<std::int64_t>& 
   if (data_type != detail::TensorDataTypeValue<T>()) {
     return nullptr;
   }
+  if (data.size() > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+    return nullptr;
+  }
 
   return CreateTensor(data_type,
                       dims.data(), dims.size(),
@@ -198,6 +202,9 @@ template <typename T>
 bool SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
   static_assert(detail::IsSupportedTensorValueType<T>(), "Unsupported TensorFlow tensor value type.");
   if (tensor == nullptr || TF_TensorType(tensor) != detail::TensorDataTypeValue<T>()) {
+    return false;
+  }
+  if (data.size() > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
     return false;
   }
 

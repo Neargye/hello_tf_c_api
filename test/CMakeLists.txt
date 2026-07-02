@@ -14,6 +14,8 @@ add_test(NAME hello_tf.t COMMAND hello_tf)
 
 add_test(NAME session_run.t COMMAND session_run)
 
+add_test(NAME repeated_inference.t COMMAND repeated_inference)
+
 add_test(NAME load_graph.t COMMAND load_graph)
 
 add_test(NAME interface.t COMMAND interface)

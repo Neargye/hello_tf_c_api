@@ -33,6 +33,12 @@ The examples keep each program small, so they create and destroy resources in
 `main`. A long-running application should move graph/session setup into its
 initialization path.
 
+`TF_SessionRun` owns neither input tensors nor output tensors forever. The caller
+must keep input tensors alive for the call and must delete every output tensor
+returned by TensorFlow with `TF_DeleteTensor`. In a loop, delete output tensors
+on every iteration. The `repeated_inference` example shows this pattern while
+reusing the graph, session, operation handles, and input tensor.
+
 ## Tensor shape and data layout
 
 Most runtime issues come from mismatched tensor shape, type, or layout. Keep

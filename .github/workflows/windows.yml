@@ -22,6 +22,11 @@ jobs:
       with:
         python-version: "3.12"
 
+    - name: Python tooling smoke
+      run: |
+        python -m py_compile tools/create_example_graph.py
+        python tools/create_example_graph.py --help
+
     - uses: actions/cache@v4
       with:
         path: tensorflow/python

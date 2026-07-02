@@ -84,6 +84,10 @@ static std::size_t DataTypeByteSize(TF_DataType data_type) {
   return TF_DataTypeSize(data_type);
 }
 
+static bool FitsTensorFlowIntParameter(std::size_t value) {
+  return value <= static_cast<std::size_t>(std::numeric_limits<int>::max());
+}
+
 static bool ExpectedTensorByteSize(TF_DataType data_type,
                                    const std::int64_t* dims,
                                    std::size_t num_dims,
@@ -107,6 +111,10 @@ static bool ExpectedTensorByteSize(TF_DataType data_type,
 
 template <typename GetString>
 TF_Tensor* CreateStringTensorImpl(const std::int64_t* dims, std::size_t num_dims, std::size_t num_strings, GetString get_string) {
+  if (!FitsTensorFlowIntParameter(num_dims) || num_strings > std::numeric_limits<std::size_t>::max() / sizeof(TF_TString)) {
+    return nullptr;
+  }
+
   std::size_t element_count = 0;
   if (!ShapeElementCount(dims, num_dims, element_count) || element_count != num_strings) {
     return nullptr;
@@ -116,8 +124,9 @@ TF_Tensor* CreateStringTensorImpl(const std::int64_t* dims, std::size_t num_dims
   std::size_t initialized = 0;
   for (; initialized < num_strings; ++initialized) {
     const auto str = get_string(initialized);
+    const auto* str_data = str.empty() ? "" : str.data();
     TF_StringInit(&data[initialized]);
-    TF_StringCopy(&data[initialized], str.data(), str.size());
+    TF_StringCopy(&data[initialized], str_data, str.size());
   }
 
   auto deallocator_arg = new StringTensorDeallocatorArg{num_strings};
@@ -346,7 +355,10 @@ TF_Code RunSession(TF_Session* session,
   if (session == nullptr ||
       (ninputs != 0 && (inputs == nullptr || input_tensors == nullptr)) ||
       (noutputs != 0 && (outputs == nullptr || output_tensors == nullptr)) ||
-      (ntargets != 0 && target_opers == nullptr)) {
+      (ntargets != 0 && target_opers == nullptr) ||
+      !FitsTensorFlowIntParameter(ninputs) ||
+      !FitsTensorFlowIntParameter(noutputs) ||
+      !FitsTensorFlowIntParameter(ntargets)) {
     return TF_INVALID_ARGUMENT;
   }
 
@@ -470,7 +482,7 @@ std::vector<std::string> GetStringTensorData(const TF_Tensor* tensor) {
 }
 
 TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len) {
-  if (dims == nullptr && num_dims != 0) {
+  if ((dims == nullptr && num_dims != 0) || !FitsTensorFlowIntParameter(num_dims)) {
     return nullptr;
   }
 

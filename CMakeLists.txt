@@ -204,6 +204,7 @@ set(TF_UTILS_SOURCES src/tf_utils.cpp src/tf_utils.hpp)
 
 add_tf_example(hello_tf src/hello_tf.cpp)
 add_tf_example(session_run src/session_run.cpp ${TF_UTILS_SOURCES})
+add_tf_example(repeated_inference src/repeated_inference.cpp ${TF_UTILS_SOURCES})
 add_tf_example(load_graph src/load_graph.cpp)
 add_tf_example(interface src/interface.cpp ${TF_UTILS_SOURCES})
 add_tf_example(graph_info src/graph_info.cpp ${TF_UTILS_SOURCES})
