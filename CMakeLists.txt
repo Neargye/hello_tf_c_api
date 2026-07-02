@@ -179,16 +179,34 @@ else()
     endif()
 endif()
 
+if(WIN32)
+    set(TENSORFLOW_RUNTIME_OUTPUT_DIRS
+        "${CMAKE_BINARY_DIR}/$<CONFIG>"
+        "${CMAKE_BINARY_DIR}/test/$<CONFIG>"
+    )
+
+    set(TENSORFLOW_RUNTIME_COPY_COMMANDS)
+    foreach(tensorflow_runtime_output_dir ${TENSORFLOW_RUNTIME_OUTPUT_DIRS})
+        list(APPEND TENSORFLOW_RUNTIME_COPY_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                "${tensorflow_runtime_output_dir}"
+        )
+        foreach(tensorflow_runtime_library ${TENSORFLOW_RUNTIME_LIBRARIES})
+            list(APPEND TENSORFLOW_RUNTIME_COPY_COMMANDS
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${tensorflow_runtime_library}"
+                    "${tensorflow_runtime_output_dir}"
+            )
+        endforeach()
+    endforeach()
+
+    add_custom_target(tensorflow_runtime ${TENSORFLOW_RUNTIME_COPY_COMMANDS})
+endif()
+
 function(target_link_tensorflow target)
     target_link_libraries(${target} PRIVATE tensorflow ${TENSORFLOW_LINK_LIBRARIES})
     if(WIN32)
-        foreach(tensorflow_runtime_library ${TENSORFLOW_RUNTIME_LIBRARIES})
-            add_custom_command(TARGET ${target} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${tensorflow_runtime_library}"
-                    "$<TARGET_FILE_DIR:${target}>"
-            )
-        endforeach()
+        add_dependencies(${target} tensorflow_runtime)
     endif()
 endfunction()
 

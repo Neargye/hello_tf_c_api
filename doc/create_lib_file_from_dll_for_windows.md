@@ -2,7 +2,7 @@
 
 This project normally does not need this step. CMake finds the TensorFlow import
 library from the TensorFlow Python wheel and copies the required runtime DLLs to
-the target output directory.
+the build output directories.
 
 Use this document only when you have a standalone TensorFlow DLL but no matching
 import library.

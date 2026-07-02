@@ -73,7 +73,7 @@ ctest --output-on-failure -C Release
 * The small GraphDef used by graph and session examples is committed as `models/graph.pb`; no external model download is required.
 * To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a virtual environment with a full TensorFlow Python package installed.
 * OpenCV is optional. If CMake finds it, the OpenCV image-file example is built and tested.
-* On Windows, CMake copies the required TensorFlow runtime DLLs into each target output directory.
+* On Windows, CMake copies the required TensorFlow runtime DLLs into the build output directories.
 * Tests use [doctest](test/3rdparty/doctest/doctest.h). CI also runs an ASan/UBSan test job on Ubuntu.
 
 ## TensorFlow library
