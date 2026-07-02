@@ -6,15 +6,15 @@ permissions: read-all
 
 jobs:
   build:
-    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
-        config:
-        - { os: windows-2022, vs: "Visual Studio 2022" }
-        - { os: windows-2025-vs2026, vs: "Visual Studio 2026" }
+        os: [windows-2022, windows-2025]
+        config: [Release, Debug]
 
-    name: "${{ matrix.config.vs }}"
+    name: "${{ matrix.os }} / x64 / ${{ matrix.config }}"
+    runs-on: ${{ matrix.os }}
+
     steps:
     - uses: actions/checkout@v4
 
@@ -32,14 +32,11 @@ jobs:
         path: tensorflow/python
         key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
 
-    - name: Build x64
-      shell: bash
-      run: |
-        rm -rf build
-        mkdir build
-        cd build
-        cmake .. -A x64
-        cmake --build . -j 4 --config Release
-        ctest --output-on-failure -C Release
-        cmake --build . -j 4 --config Debug
-        ctest --output-on-failure -C Debug
+    - name: Configure
+      run: cmake -S . -B build -A x64
+
+    - name: Build
+      run: cmake --build build --parallel --config ${{ matrix.config }}
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure -C ${{ matrix.config }}

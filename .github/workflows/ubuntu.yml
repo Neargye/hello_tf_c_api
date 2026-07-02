@@ -5,16 +5,22 @@ on: [push, pull_request]
 permissions: read-all
 
 jobs:
-  ubuntu:
+  build:
     strategy:
       fail-fast: false
       matrix:
         compiler:
-        - { cc: "gcc-14",    cxx: "g++-14",      os: "ubuntu-24.04" }
-        - { cc: "clang-18",  cxx: "clang++-18",  os: "ubuntu-24.04" }
+        - { name: "GCC 14",   cc: "gcc-14",   cxx: "g++-14" }
+        - { name: "Clang 18", cc: "clang-18", cxx: "clang++-18" }
+        build_type: [Release, Debug]
 
-    name: "${{ matrix.compiler.cc }}"
-    runs-on: ${{ matrix.compiler.os }}
+    name: "${{ matrix.compiler.name }} / ${{ matrix.build_type }}"
+    runs-on: ubuntu-24.04
+
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
+
     steps:
     - uses: actions/checkout@v4
 
@@ -32,23 +38,14 @@ jobs:
         path: tensorflow/python
         key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
 
-    - name: Build Release
-      run: |
-        rm -rf build
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
-        cmake --build . -j 4 --config Release
-        ctest --output-on-failure -C Release
+    - name: Configure
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
-    - name: Build Debug
-      run: |
-        rm -rf build
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
-        cmake --build . -j 4 --config Debug
-        ctest --output-on-failure -C Debug
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
 
   sanitizers:
     name: "clang-18 sanitizers"
