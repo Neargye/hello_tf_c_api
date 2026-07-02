@@ -33,9 +33,95 @@
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace tf_utils {
+
+namespace detail {
+
+template <typename T>
+struct TensorDataType {
+  static constexpr bool supported = false;
+};
+
+template <>
+struct TensorDataType<float> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_FLOAT;
+};
+
+template <>
+struct TensorDataType<double> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_DOUBLE;
+};
+
+template <>
+struct TensorDataType<std::int8_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_INT8;
+};
+
+template <>
+struct TensorDataType<std::uint8_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_UINT8;
+};
+
+template <>
+struct TensorDataType<std::int16_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_INT16;
+};
+
+template <>
+struct TensorDataType<std::uint16_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_UINT16;
+};
+
+template <>
+struct TensorDataType<std::int32_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_INT32;
+};
+
+template <>
+struct TensorDataType<std::uint32_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_UINT32;
+};
+
+template <>
+struct TensorDataType<std::int64_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_INT64;
+};
+
+template <>
+struct TensorDataType<std::uint64_t> {
+  static constexpr bool supported = true;
+  static constexpr TF_DataType value = TF_UINT64;
+};
+
+template <typename T>
+using TensorValueType = typename std::remove_cv<T>::type;
+
+template <typename T>
+constexpr bool IsSupportedTensorValueType() {
+  return TensorDataType<TensorValueType<T>>::supported;
+}
+
+template <typename T>
+constexpr TF_DataType TensorDataTypeValue() {
+  static_assert(IsSupportedTensorValueType<T>(), "Unsupported TensorFlow tensor value type.");
+  return TensorDataType<TensorValueType<T>>::value;
+}
+
+} // namespace detail
 
 TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_Status* status = nullptr);
 
@@ -65,10 +151,34 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
 
 template <typename T>
 TF_Tensor* CreateTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, const std::vector<T>& data) {
+  static_assert(detail::IsSupportedTensorValueType<T>(), "Use CreateStringTensor for TF_STRING and supported arithmetic types for numeric tensors.");
+  if (data_type != detail::TensorDataTypeValue<T>()) {
+    return nullptr;
+  }
+
   return CreateTensor(data_type,
                       dims.data(), dims.size(),
                       data.data(), data.size() * sizeof(T));
 }
+
+TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims,
+                              const std::string_view* strings, std::size_t num_strings);
+
+TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::vector<std::string_view>& strings);
+
+inline TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::vector<std::string>& strings) {
+  std::vector<std::string_view> views;
+  views.reserve(strings.size());
+  for (const auto& str : strings) {
+    views.emplace_back(str);
+  }
+
+  return CreateStringTensor(dims, views);
+}
+
+std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index);
+
+std::vector<std::string> GetStringTensorData(const TF_Tensor* tensor);
 
 TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len = 0);
 
@@ -81,18 +191,36 @@ void DeleteTensors(const std::vector<TF_Tensor*>& tensors);
 bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len);
 
 template <typename T>
-void SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
-  SetTensorData(tensor, data.data(), data.size() * sizeof(T));
+bool SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
+  static_assert(detail::IsSupportedTensorValueType<T>(), "Unsupported TensorFlow tensor value type.");
+  if (tensor == nullptr || TF_TensorType(tensor) != detail::TensorDataTypeValue<T>()) {
+    return false;
+  }
+
+  return SetTensorData(tensor, data.data(), data.size() * sizeof(T));
 }
 
 template <typename T>
 std::vector<T> GetTensorData(const TF_Tensor* tensor) {
+  static_assert(detail::IsSupportedTensorValueType<T>(), "Use GetStringTensorData for TF_STRING and supported arithmetic types for numeric tensors.");
   if (tensor == nullptr) {
     return {};
   }
-  auto data = static_cast<T*>(TF_TensorData(tensor));
-  auto size = TF_TensorByteSize(tensor) / TF_DataTypeSize(TF_TensorType(tensor));
-  if (data == nullptr || size <= 0) {
+  if (TF_TensorType(tensor) != detail::TensorDataTypeValue<T>()) {
+    return {};
+  }
+
+  const auto byte_size = TF_TensorByteSize(tensor);
+  if (byte_size % sizeof(T) != 0) {
+    return {};
+  }
+
+  auto data = static_cast<const T*>(TF_TensorData(tensor));
+  auto size = byte_size / sizeof(T);
+  if (size == 0) {
+    return {};
+  }
+  if (data == nullptr) {
     return {};
   }
 

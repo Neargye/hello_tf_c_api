@@ -109,6 +109,11 @@ elseif(APPLE)
             NO_DEFAULT_PATH
         )
     endif()
+    find_file(TENSORFLOW_FRAMEWORK_LIBRARY
+        NAMES libtensorflow_framework.2.dylib libtensorflow_framework.dylib
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
 else()
     find_library(TENSORFLOW_LIBRARY
         NAMES tensorflow libtensorflow.so tensorflow_cc libtensorflow_cc.so.2 tensorflow_framework libtensorflow_framework.so.2
@@ -122,11 +127,25 @@ else()
             NO_DEFAULT_PATH
         )
     endif()
+    find_file(TENSORFLOW_FRAMEWORK_LIBRARY
+        NAMES libtensorflow_framework.so.2 libtensorflow_framework.so
+        PATHS ${TENSORFLOW_LIBRARY_DIRS}
+        NO_DEFAULT_PATH
+    )
 endif()
 
 if(NOT TENSORFLOW_LIBRARY)
     message(FATAL_ERROR "TensorFlow native library not found in ${TENSORFLOW_LIBRARY_DIRS}")
 endif()
+
+set(TENSORFLOW_LINK_LIBRARIES "${TENSORFLOW_LIBRARY}")
+if(TENSORFLOW_FRAMEWORK_LIBRARY AND NOT TENSORFLOW_FRAMEWORK_LIBRARY STREQUAL TENSORFLOW_LIBRARY)
+    list(APPEND TENSORFLOW_LINK_LIBRARIES "${TENSORFLOW_FRAMEWORK_LIBRARY}")
+endif()
+list(REMOVE_DUPLICATES TENSORFLOW_LINK_LIBRARIES)
+
+message(STATUS "TensorFlow include dir: ${TENSORFLOW_INCLUDE_DIR}")
+message(STATUS "TensorFlow link libraries: ${TENSORFLOW_LINK_LIBRARIES}")
 
 get_filename_component(TENSORFLOW_LIBRARY_DIR "${TENSORFLOW_LIBRARY}" DIRECTORY)
 set(CMAKE_BUILD_RPATH "${TENSORFLOW_LIBRARY_DIR}")
@@ -155,10 +174,13 @@ if(WIN32)
     endif()
 else()
     set_target_properties(tensorflow PROPERTIES IMPORTED_LOCATION "${TENSORFLOW_LIBRARY}")
+    if(TENSORFLOW_FRAMEWORK_LIBRARY AND NOT TENSORFLOW_FRAMEWORK_LIBRARY STREQUAL TENSORFLOW_LIBRARY)
+        set_property(TARGET tensorflow APPEND PROPERTY INTERFACE_LINK_LIBRARIES "${TENSORFLOW_FRAMEWORK_LIBRARY}")
+    endif()
 endif()
 
 function(target_link_tensorflow target)
-    target_link_libraries(${target} PRIVATE tensorflow)
+    target_link_libraries(${target} PRIVATE tensorflow ${TENSORFLOW_LINK_LIBRARIES})
     if(WIN32)
         foreach(tensorflow_runtime_library ${TENSORFLOW_RUNTIME_LIBRARIES})
             add_custom_command(TARGET ${target} POST_BUILD
@@ -186,10 +208,23 @@ add_tf_example(load_graph src/load_graph.cpp)
 add_tf_example(interface src/interface.cpp ${TF_UTILS_SOURCES})
 add_tf_example(graph_info src/graph_info.cpp ${TF_UTILS_SOURCES})
 add_tf_example(create_tensor src/create_tensor.cpp)
-add_tf_example(create_string_tensor src/create_string_tensor.cpp)
+add_tf_example(create_string_tensor src/create_string_tensor.cpp ${TF_UTILS_SOURCES})
+add_tf_example(image_example src/image_example.cpp ${TF_UTILS_SOURCES})
 add_tf_example(tensor_info src/tensor_info.cpp ${TF_UTILS_SOURCES})
 add_tf_example(allocate_tensor src/allocate_tensor.cpp)
 add_tf_example(batch_interface src/batch_interface.cpp ${TF_UTILS_SOURCES})
+
+find_package(OpenCV QUIET COMPONENTS core imgcodecs imgproc)
+if(OpenCV_FOUND)
+    message(STATUS "OpenCV found: ${OpenCV_VERSION}")
+    add_tf_example(opencv_image_file_example src/opencv_image_file_example.cpp ${TF_UTILS_SOURCES})
+    target_include_directories(opencv_image_file_example PRIVATE ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(opencv_image_file_example PRIVATE ${OpenCV_LIBS})
+    set(HELLO_TF_HAS_OPENCV_IMAGE_FILE_EXAMPLE ON)
+else()
+    message(STATUS "OpenCV not found; skipping opencv_image_file_example")
+    set(HELLO_TF_HAS_OPENCV_IMAGE_FILE_EXAMPLE OFF)
+endif()
 
 configure_file(models/graph.pb ${CMAKE_CURRENT_BINARY_DIR}/graph.pb COPYONLY)
 

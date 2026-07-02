@@ -24,6 +24,12 @@ add_test(NAME create_tensor.t COMMAND create_tensor)
 
 add_test(NAME create_string_tensor.t COMMAND create_string_tensor)
 
+add_test(NAME image_example.t COMMAND image_example)
+
+if(HELLO_TF_HAS_OPENCV_IMAGE_FILE_EXAMPLE)
+  add_test(NAME opencv_image_file_example.t COMMAND opencv_image_file_example)
+endif()
+
 add_test(NAME tensor_info.t COMMAND tensor_info)
 
 add_test(NAME allocate_tensor.t COMMAND allocate_tensor)

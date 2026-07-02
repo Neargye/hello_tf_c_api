@@ -2,7 +2,14 @@
 
 ![Example TensorFlow C API Logo](logo.png)
 
-Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
+Example how to run TensorFlow C API on Windows, Linux and macOS (Darwin).
+
+## Requirements
+
+* CMake 3.20 or newer.
+* C++17 compiler.
+* Python with pip. CI uses Python 3.12.
+* 64-bit target platform.
 
 ## [Example](src/)
 
@@ -10,12 +17,14 @@ Example how to run TensorFlow lib C API on Windows, Linux and macOS(Darwin).
 * [Load graph](src/load_graph.cpp)
 * [Create Tensor](src/create_tensor.cpp)
 * [Create String Tensor](src/create_string_tensor.cpp)
+* [Image processing](src/image_example.cpp)
+* [OpenCV image file processing](src/opencv_image_file_example.cpp) (optional, requires OpenCV)
 * [Allocate Tensor](src/allocate_tensor.cpp)
 * [Run session](src/session_run.cpp)
 * [Interface](src/interface.cpp)
+* [Batch Interface](src/batch_interface.cpp)
 * [Tensor Info](src/tensor_info.cpp)
 * [Graph Info](src/graph_info.cpp)
-* [Image processing](https://github.com/Xonxt/hello_tf_c_api/blob/master/src/image_example.cpp)
 
 ## Build example
 
@@ -26,8 +35,9 @@ git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
-cmake -G "Visual Studio 15 2017" -A x64 ..
-cmake --build . --config Debug
+cmake -A x64 ..
+cmake --build . --config Release
+ctest --output-on-failure -C Release
 ```
 
 ### Linux
@@ -37,54 +47,84 @@ git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ..
-cmake --build .
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . -j 4
+ctest --output-on-failure
 ```
 
-### macOS(Darwin)
+### macOS (Darwin)
 
 ```text
 git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
 mkdir build
 cd build
-cmake -G "XCode" ..
-cmake --build .
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+ctest --output-on-failure -C Release
 ```
 
 ### Remarks
 
-* After the build, you can find the TensorFlow lib in the folder hello_tf_c_api/tensorflow/lib, and header in hello_tf_c_api/tensorflow/include.
-* The tensorflow in the repository is compiled in x64 mode. Make sure that project target 64-bit platforms.
-* Make sure that the tensorflow lib is in Output Directory or either in the directory contained by the %PATH% environment variable.
+* CMake downloads TensorFlow 2.21.0 from the Python wheel into hello_tf_c_api/tensorflow/python. It does not install TensorFlow into the system Python.
+* Python with pip is required during CMake configure.
+* OpenCV is optional. If CMake finds it, the OpenCV image-file example is built and tested.
+* On Windows, CMake copies the required TensorFlow runtime DLLs into each target output directory.
+* Tests use [doctest](test/3rdparty/doctest/doctest.h). CI also runs an ASan/UBSan test job on Ubuntu.
 
-## Get tensorflow lib
+## TensorFlow library
 
-For x64 CPU, you can download the tensorflow.so, tensorflow.dll and tensorflow.lib from https://www.tensorflow.org/install/lang_c.
+This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local tensorflow/python directory. The CMake file creates an imported `tensorflow` target and copies required runtime libraries where needed.
 
-Or build lib which version you need from the sources, with CPU or GPU support.
+If you want to link TensorFlow manually, use the headers from:
 
-### Link tensorflow lib
+```text
+tensorflow/python/tensorflow/include
+```
+
+and the native libraries from:
+
+```text
+tensorflow/python/tensorflow
+tensorflow/python/tensorflow/python
+```
+
+For standalone C API packages, you can also download the TensorFlow C library from https://www.tensorflow.org/install/lang_c.
+
+Or build the library version you need from sources, with CPU or GPU support.
+
+### Link TensorFlow lib
 
 #### CMakeLists.txt
 
+Inside this project, examples use:
+
 ```text
-link_directories(yourpath/to/tensorflow) # path to tensorflow lib
-... # other
-target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE> tensorflow)
+target_link_tensorflow(<target>)
+```
+
+For a separate CMake project, add the TensorFlow include directory and link the native library or imported target you define:
+
+```text
+target_include_directories(<target> PRIVATE path/to/tensorflow/include)
+target_link_libraries(<target> PRIVATE path/to/tensorflow/library)
 ```
 
 #### Visual Studio
 
-"Project"->"Properties"->Configuration Properties"->"Linker"->"Additional Dependencies" and add path to your tensorflow.lib as a next line.
+"Project" -> "Properties" -> "Configuration Properties" -> "C/C++" -> "Additional Include Directories" and add the TensorFlow include path.
 
-Make sure that the tensorflow.dll is in Output Directory (by default, this is Debug\Release under your project's folder) or either in the directory contained by the %PATH% environment variable.
+"Project" -> "Properties" -> "Configuration Properties" -> "Linker" -> "Additional Dependencies" and add the TensorFlow import library path.
 
-### [Here’s an example how prepare models](doc/prepare_models.md)
+Make sure that the TensorFlow DLLs are in the output directory or in a directory contained by the `%PATH%` environment variable.
 
-To generated the graph.pb file need takes a graph definition and a set of checkpoints and freezes them together into a single file.
+### [Here’s an example how to prepare models](doc/prepare_models.md)
 
-### [Here’s an example how create tensorflow.lib file from tensorflow.dll for windows](doc/create_lib_file_from_dll_for_windows.md)
+To generate the graph.pb file, take a graph definition and a set of checkpoints and freeze them together into a single file.
+
+### [Here’s an example how to optimize graph](doc/optimizing.md)
+
+### [Here’s an example how to create tensorflow.lib file from tensorflow.dll for Windows](doc/create_lib_file_from_dll_for_windows.md)
 
 ### __Few articles with details__
 

@@ -41,67 +41,10 @@
 #include "tf_utils.hpp"
 #include <scope_guard.hpp>
 #include <cstdint>
-#include <cstring>
-#include <numeric>
 #include <string>
 #include <vector>
 
 namespace {
-
-struct StringTensorDeallocatorArg {
-  std::size_t size;
-  int* deallocate_count = nullptr;
-};
-
-void DeallocateStringTensor(void* data, std::size_t, void* arg) {
-  auto strings = static_cast<TF_TString*>(data);
-  auto deallocator_arg = static_cast<StringTensorDeallocatorArg*>(arg);
-
-  if (strings != nullptr && deallocator_arg != nullptr) {
-    for (std::size_t i = 0; i < deallocator_arg->size; ++i) {
-      TF_StringDealloc(&strings[i]);
-    }
-  }
-
-  if (deallocator_arg != nullptr && deallocator_arg->deallocate_count != nullptr) {
-    ++(*deallocator_arg->deallocate_count);
-  }
-
-  delete[] strings;
-  delete deallocator_arg;
-}
-
-std::int64_t ShapeElementCount(const std::vector<std::int64_t>& dims) {
-  return std::accumulate(dims.begin(), dims.end(), std::int64_t{1}, std::multiplies<std::int64_t>{});
-}
-
-TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims,
-                              const std::vector<std::string>& strings,
-                              int* deallocate_count = nullptr) {
-  if (ShapeElementCount(dims) != static_cast<std::int64_t>(strings.size())) {
-    return nullptr;
-  }
-
-  auto data = new TF_TString[strings.size()];
-  for (std::size_t i = 0; i < strings.size(); ++i) {
-    TF_StringInit(&data[i]);
-    TF_StringCopy(&data[i], strings[i].data(), strings[i].size());
-  }
-
-  auto deallocator_arg = new StringTensorDeallocatorArg{strings.size(), deallocate_count};
-  return TF_NewTensor(TF_STRING,
-                      dims.data(), static_cast<int>(dims.size()),
-                      data, strings.size() * sizeof(TF_TString),
-                      DeallocateStringTensor, deallocator_arg);
-}
-
-std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index) {
-  const auto data = static_cast<const TF_TString*>(TF_TensorData(tensor));
-  const auto* str = &data[index];
-  const auto* begin = TF_StringGetDataPointer(str);
-
-  return {begin, begin + TF_StringGetSize(str)};
-}
 
 TF_Operation* AddPlaceholder(TF_Graph* graph, const char* name, TF_DataType data_type, TF_Status* status) {
   auto desc = TF_NewOperation(graph, "Placeholder", name);
@@ -114,6 +57,25 @@ TF_Operation* AddIdentity(TF_Graph* graph, const char* name, TF_Output input, TF
   auto desc = TF_NewOperation(graph, "Identity", name);
   TF_SetAttrType(desc, "T", data_type);
   TF_AddInput(desc, input);
+
+  return TF_FinishOperation(desc, status);
+}
+
+TF_Operation* AddFloatConst(TF_Graph* graph, const char* name, float value, TF_Status* status) {
+  const std::vector<std::int64_t> dims = {};
+  const std::vector<float> values = {value};
+  auto tensor = tf_utils::CreateTensor(TF_FLOAT, dims, values);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+  if (tensor == nullptr) {
+    return nullptr;
+  }
+
+  auto desc = TF_NewOperation(graph, "Const", name);
+  TF_SetAttrType(desc, "dtype", TF_FLOAT);
+  TF_SetAttrTensor(desc, "value", tensor, status);
+  if (TF_GetCode(status) != TF_OK) {
+    return nullptr;
+  }
 
   return TF_FinishOperation(desc, status);
 }
@@ -141,9 +103,23 @@ TEST_CASE("CreateTensor copies numeric data") {
   CHECK(tf_utils::GetTensorData<float>(tensor) == values);
 }
 
+TEST_CASE("CreateTensor rejects mismatched tensor types and byte sizes") {
+  const std::vector<std::int64_t> dims = {2};
+  const std::vector<std::int32_t> int_values = {1, 2};
+  const std::vector<float> short_values = {1.0f};
+  const std::vector<float> long_values = {1.0f, 2.0f, 3.0f};
+
+  CHECK(tf_utils::CreateTensor(TF_FLOAT, dims, int_values) == nullptr);
+  CHECK(tf_utils::CreateTensor(TF_FLOAT, dims.data(), dims.size(), short_values.data(), short_values.size() * sizeof(float)) == nullptr);
+  CHECK(tf_utils::CreateTensor(TF_FLOAT, dims.data(), dims.size(), long_values.data(), long_values.size() * sizeof(float)) == nullptr);
+  CHECK(tf_utils::CreateTensor(TF_STRING, dims, int_values) == nullptr);
+}
+
 TEST_CASE("SetTensorData validates null tensors and updates tensor data") {
   const std::vector<std::int64_t> dims = {3};
   const std::vector<std::int32_t> values = {7, 8, 9};
+  const std::vector<std::int32_t> short_values = {1, 2};
+  const std::vector<float> wrong_type_values = {1.0f, 2.0f, 3.0f};
 
   CHECK_FALSE(tf_utils::SetTensorData(nullptr, values.data(), values.size() * sizeof(std::int32_t)));
 
@@ -153,6 +129,21 @@ TEST_CASE("SetTensorData validates null tensors and updates tensor data") {
   REQUIRE(tensor != nullptr);
   CHECK(tf_utils::SetTensorData(tensor, values.data(), values.size() * sizeof(std::int32_t)));
   CHECK(tf_utils::GetTensorData<std::int32_t>(tensor) == values);
+  CHECK_FALSE(tf_utils::SetTensorData(tensor, short_values));
+  CHECK_FALSE(tf_utils::SetTensorData(tensor, wrong_type_values));
+  CHECK(tf_utils::GetTensorData<std::int32_t>(tensor) == values);
+}
+
+TEST_CASE("GetTensorData rejects mismatched tensor value types") {
+  const std::vector<std::int64_t> dims = {2};
+  const std::vector<float> values = {1.0f, 2.0f};
+
+  auto tensor = tf_utils::CreateTensor(TF_FLOAT, dims, values);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
+  REQUIRE(tensor != nullptr);
+  CHECK(tf_utils::GetTensorData<float>(tensor) == values);
+  CHECK(tf_utils::GetTensorData<std::int32_t>(tensor).empty());
 }
 
 TEST_CASE("Public helpers reject invalid arguments") {
@@ -161,6 +152,18 @@ TEST_CASE("Public helpers reject invalid arguments") {
   CHECK(tf_utils::CreateSession(nullptr) == nullptr);
 
   CHECK(tf_utils::RunSession(nullptr, nullptr, nullptr, 0, nullptr, nullptr, 0) == TF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("CreateEmptyTensor supports scalar tensors") {
+  const float value = 3.5f;
+
+  auto tensor = tf_utils::CreateEmptyTensor(TF_FLOAT, nullptr, 0, sizeof(float));
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
+  REQUIRE(tensor != nullptr);
+  CHECK(TF_NumDims(tensor) == 0);
+  CHECK(tf_utils::SetTensorData(tensor, &value, sizeof(value)));
+  CHECK(tf_utils::GetTensorData<float>(tensor) == std::vector<float>{value});
 }
 
 TEST_CASE("GetTensorShape handles unknown rank safely") {
@@ -220,15 +223,46 @@ TEST_CASE("RunSession rejects mismatched vector sizes before calling TensorFlow"
   CHECK(TF_GetCode(status) == TF_OK);
 }
 
-TEST_CASE("TF_STRING tensor custom deallocator runs exactly once") {
-  int deallocate_count = 0;
+TEST_CASE("RunSession raw overload accepts zero input count with null input arrays") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
 
-  auto tensor = CreateStringTensor({1}, {"owned string"}, &deallocate_count);
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto value = AddFloatConst(graph, "value", 42.0f, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(value != nullptr);
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  const auto output = TF_Output{value, 0};
+  TF_Tensor* output_tensor = nullptr;
+  SCOPE_EXIT{ tf_utils::DeleteTensor(output_tensor); };
+
+  CHECK(tf_utils::RunSession(session, nullptr, nullptr, 0, &output, &output_tensor, 1, status) == TF_OK);
+  CHECK(TF_GetCode(status) == TF_OK);
+  REQUIRE(output_tensor != nullptr);
+  CHECK(tf_utils::GetTensorData<float>(output_tensor) == std::vector<float>{42.0f});
+}
+
+TEST_CASE("CreateStringTensor validates shape and round-trips embedded nulls") {
+  const std::vector<std::int64_t> dims = {2};
+  const std::vector<std::string> strings = {"owned string", std::string("a\0b", 3)};
+
+  CHECK(tf_utils::CreateStringTensor({3}, strings) == nullptr);
+  CHECK(tf_utils::CreateStringTensor(dims.data(), dims.size(), nullptr, strings.size()) == nullptr);
+
+  auto tensor = tf_utils::CreateStringTensor(dims, strings);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
   REQUIRE(tensor != nullptr);
-  CHECK(deallocate_count == 0);
-
-  TF_DeleteTensor(tensor);
-  CHECK(deallocate_count == 1);
+  CHECK(TF_TensorType(tensor) == TF_STRING);
+  CHECK(tf_utils::GetStringTensorData(tensor) == strings);
+  CHECK(tf_utils::GetStringTensorElement(tensor, strings.size()).empty());
 }
 
 TEST_CASE("TF_STRING tensor round-trips through TensorFlow SessionRun") {
@@ -254,7 +288,7 @@ TEST_CASE("TF_STRING tensor round-trips through TensorFlow SessionRun") {
   const std::vector<std::int64_t> dims = {2, 2};
   const std::vector<std::string> strings = {"hello", "tensorflow", "c-api", std::string("a\0b", 3)};
 
-  std::vector<TF_Tensor*> input_tensors = {CreateStringTensor(dims, strings)};
+  std::vector<TF_Tensor*> input_tensors = {tf_utils::CreateStringTensor(dims, strings)};
   SCOPE_EXIT{ tf_utils::DeleteTensors(input_tensors); };
   REQUIRE(input_tensors[0] != nullptr);
 
@@ -272,6 +306,6 @@ TEST_CASE("TF_STRING tensor round-trips through TensorFlow SessionRun") {
   CHECK(TF_Dim(output_tensors[0], 1) == dims[1]);
 
   for (std::size_t i = 0; i < strings.size(); ++i) {
-    CHECK(GetStringTensorElement(output_tensors[0], i) == strings[i]);
+    CHECK(tf_utils::GetStringTensorElement(output_tensors[0], i) == strings[i]);
   }
 }

@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <limits>
 
 namespace tf_utils {
 
@@ -52,6 +53,55 @@ static void DeallocateStringTensor(void* data, size_t, void* arg) {
 
   delete[] strings;
   delete deallocator_arg;
+}
+
+static bool ShapeElementCount(const std::int64_t* dims, std::size_t num_dims, std::size_t& count) {
+  if (dims == nullptr && num_dims != 0) {
+    return false;
+  }
+
+  count = 1;
+  for (std::size_t i = 0; i < num_dims; ++i) {
+    if (dims[i] < 0) {
+      return false;
+    }
+    const auto dim = static_cast<std::size_t>(dims[i]);
+    if (dim != 0 && count > std::numeric_limits<std::size_t>::max() / dim) {
+      return false;
+    }
+    count *= dim;
+  }
+
+  return true;
+}
+
+static std::size_t DataTypeByteSize(TF_DataType data_type) {
+  if (data_type == TF_STRING) {
+    return sizeof(TF_TString);
+  }
+
+  return TF_DataTypeSize(data_type);
+}
+
+static bool ExpectedTensorByteSize(TF_DataType data_type,
+                                   const std::int64_t* dims,
+                                   std::size_t num_dims,
+                                   std::size_t& byte_size) {
+  std::size_t element_count = 0;
+  if (!ShapeElementCount(dims, num_dims, element_count)) {
+    return false;
+  }
+
+  const auto element_size = DataTypeByteSize(data_type);
+  if (element_size == 0) {
+    return false;
+  }
+  if (element_count != 0 && element_size > std::numeric_limits<std::size_t>::max() / element_count) {
+    return false;
+  }
+
+  byte_size = element_count * element_size;
+  return true;
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
@@ -97,16 +147,9 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
 }
 
 TF_Tensor* ScalarStringTensor(const char* str, TF_Status*) {
-  auto str_len = std::strlen(str);
-  auto tstring = new TF_TString[1];
-  TF_StringInit(&tstring[0]);
-  TF_StringCopy(&tstring[0], str, str_len);
-  int64_t dims[] = { 1,1 };
-  int num_dims = 1;
-  auto deallocator_arg = new StringTensorDeallocatorArg{1};
-  TF_Tensor* tensor = TF_NewTensor(TF_STRING, dims, num_dims, tstring, sizeof(TF_TString), &DeallocateStringTensor, deallocator_arg);
+  const std::string_view value(str);
 
-  return tensor;
+  return CreateStringTensor(nullptr, 0, &value, 1);
 }
 
 } // namespace tf_utils::
@@ -257,8 +300,8 @@ TF_Code RunSession(TF_Session* session,
                    const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs,
                    TF_Status* status) {
   if (session == nullptr ||
-      inputs == nullptr || input_tensors == nullptr ||
-      outputs == nullptr || output_tensors == nullptr) {
+      (ninputs != 0 && (inputs == nullptr || input_tensors == nullptr)) ||
+      (noutputs != 0 && (outputs == nullptr || output_tensors == nullptr))) {
     return TF_INVALID_ARGUMENT;
   }
 
@@ -296,8 +339,94 @@ TF_Code RunSession(TF_Session* session,
                     status);
 }
 
+TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims,
+                              const std::string_view* strings, std::size_t num_strings) {
+  if (strings == nullptr && num_strings != 0) {
+    return nullptr;
+  }
+
+  std::size_t element_count = 0;
+  if (!ShapeElementCount(dims, num_dims, element_count) || element_count != num_strings) {
+    return nullptr;
+  }
+
+  auto data = new TF_TString[num_strings];
+  std::size_t initialized = 0;
+  for (; initialized < num_strings; ++initialized) {
+    TF_StringInit(&data[initialized]);
+    TF_StringCopy(&data[initialized], strings[initialized].data(), strings[initialized].size());
+  }
+
+  auto deallocator_arg = new StringTensorDeallocatorArg{num_strings};
+  auto tensor = TF_NewTensor(TF_STRING,
+                             dims, static_cast<int>(num_dims),
+                             data, num_strings * sizeof(TF_TString),
+                             &DeallocateStringTensor, deallocator_arg);
+  if (tensor == nullptr) {
+    for (std::size_t i = 0; i < initialized; ++i) {
+      TF_StringDealloc(&data[i]);
+    }
+    delete[] data;
+    delete deallocator_arg;
+  }
+
+  return tensor;
+}
+
+TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::vector<std::string_view>& strings) {
+  return CreateStringTensor(dims.data(), dims.size(), strings.data(), strings.size());
+}
+
+std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index) {
+  if (tensor == nullptr || TF_TensorType(tensor) != TF_STRING) {
+    return {};
+  }
+
+  const auto byte_size = TF_TensorByteSize(tensor);
+  if (byte_size % sizeof(TF_TString) != 0 || index >= byte_size / sizeof(TF_TString)) {
+    return {};
+  }
+
+  const auto data = static_cast<const TF_TString*>(TF_TensorData(tensor));
+  if (data == nullptr) {
+    return {};
+  }
+
+  const auto* str = &data[index];
+  const auto* begin = TF_StringGetDataPointer(str);
+  const auto size = TF_StringGetSize(str);
+  if (size == 0) {
+    return {};
+  }
+  if (begin == nullptr) {
+    return {};
+  }
+
+  return {begin, size};
+}
+
+std::vector<std::string> GetStringTensorData(const TF_Tensor* tensor) {
+  if (tensor == nullptr || TF_TensorType(tensor) != TF_STRING) {
+    return {};
+  }
+
+  const auto byte_size = TF_TensorByteSize(tensor);
+  if (byte_size % sizeof(TF_TString) != 0) {
+    return {};
+  }
+
+  std::vector<std::string> result;
+  const auto size = byte_size / sizeof(TF_TString);
+  result.reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    result.push_back(GetStringTensorElement(tensor, i));
+  }
+
+  return result;
+}
+
 TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len) {
-  if (dims == nullptr) {
+  if (dims == nullptr && num_dims != 0) {
     return nullptr;
   }
 
@@ -311,21 +440,27 @@ TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64
 TF_Tensor* CreateTensor(TF_DataType data_type,
                         const std::int64_t* dims, std::size_t num_dims,
                         const void* data, std::size_t len) {
-  auto tensor = CreateEmptyTensor(data_type, dims, num_dims, len);
+  std::size_t expected_len = 0;
+  if (!ExpectedTensorByteSize(data_type, dims, num_dims, expected_len) || len != expected_len) {
+    return nullptr;
+  }
+
+  auto tensor = CreateEmptyTensor(data_type, dims, num_dims, expected_len);
   if (tensor == nullptr) {
     return nullptr;
   }
 
   auto tensor_data = TF_TensorData(tensor);
-  if (tensor_data == nullptr) {
+  if (expected_len == 0) {
+    return tensor;
+  }
+
+  if (tensor_data == nullptr || data == nullptr) {
     DeleteTensor(tensor);
     return nullptr;
   }
 
-  len = std::min(len, TF_TensorByteSize(tensor));
-  if (data != nullptr && len != 0) {
-    std::memcpy(tensor_data, data, len);
-  }
+  std::memcpy(tensor_data, data, expected_len);
 
   return tensor;
 }
@@ -348,13 +483,18 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   }
 
   auto tensor_data = TF_TensorData(tensor);
-  len = std::min(len, TF_TensorByteSize(tensor));
-  if (tensor_data != nullptr && data != nullptr && len != 0) {
-    std::memcpy(tensor_data, data, len);
+  if (len != TF_TensorByteSize(tensor)) {
+    return false;
+  }
+  if (len == 0) {
     return true;
   }
+  if (tensor_data == nullptr || data == nullptr) {
+    return false;
+  }
 
-  return false;
+  std::memcpy(tensor_data, data, len);
+  return true;
 }
 
 std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output) {
