@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <numeric>
 #include <vector>
 
@@ -48,7 +49,7 @@ int main() {
   const auto element_count = std::accumulate(dims.begin(), dims.end(), std::int64_t{1}, std::multiplies<std::int64_t>{});
   const auto data_size = static_cast<std::size_t>(element_count) * sizeof(float);
 
-  auto data = static_cast<float*>(std::malloc(data_size));
+  std::unique_ptr<float, decltype(&std::free)> data(static_cast<float*>(std::malloc(data_size)), &std::free);
   if (data == nullptr) {
     std::cout << "Failed to allocate tensor data" << std::endl;
     return 1;
@@ -62,18 +63,19 @@ int main() {
     -0.4807833f, -0.3775733f, 0.1748378f, 0.7718275f, -0.4073670f, 0.0107582f, 0.0062978f, 0.9131795f, 0.7187147f, -0.0394935f, 0.1184392f, -0.6840039f,
   };
 
-  std::copy(vals.begin(), vals.end(), data);
+  std::copy(vals.begin(), vals.end(), data.get());
 
   auto tensor = TF_NewTensor(TF_FLOAT,
                              dims.data(), static_cast<int>(dims.size()),
-                             data, data_size,
+                             data.get(), data_size,
                              DeallocateTensor, nullptr);
-  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (tensor == nullptr) {
     std::cout << "Failed to create tensor" << std::endl;
     return 1;
   }
+  data.release();
+  SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (TF_TensorType(tensor) != TF_FLOAT) {
     std::cout << "Unexpected tensor type" << std::endl;

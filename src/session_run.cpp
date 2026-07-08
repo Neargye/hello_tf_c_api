@@ -68,17 +68,10 @@ int main() {
 
   auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
-  auto options = TF_NewSessionOptions();
-  auto sess = TF_NewSession(graph, options, status);
-  TF_DeleteSessionOptions(options);
-  MAKE_SCOPE_EXIT(delete_session) {
-    if (sess != nullptr) {
-      TF_CloseSession(sess, status);
-      TF_DeleteSession(sess, status);
-    }
-  };
+  auto sess = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(sess); };
 
-  if (TF_GetCode(status) != TF_OK) {
+  if (sess == nullptr || TF_GetCode(status) != TF_OK) {
     return 4;
   }
 
@@ -95,19 +88,6 @@ int main() {
     std::cout << "Failed to run session" << std::endl;
     return 5;
   }
-
-  TF_CloseSession(sess, status);
-  if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Failed to close session" << std::endl;
-    return 6;
-  }
-
-  TF_DeleteSession(sess, status);
-  if (TF_GetCode(status) != TF_OK) {
-    std::cout << "Failed to delete session" << std::endl;
-    return 7;
-  }
-  delete_session.dismiss();
 
   auto data = static_cast<float*>(TF_TensorData(output_tensor));
   if (data == nullptr) {

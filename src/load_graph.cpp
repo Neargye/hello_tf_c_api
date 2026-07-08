@@ -31,39 +31,55 @@
 
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <scope_guard.hpp>
+#include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
+#include <system_error>
 
 static void DeallocateBuffer(void* data, size_t) {
   std::free(data);
 }
 
+static bool FileSizeForBuffer(const char* file, std::size_t& size) {
+  if (file == nullptr) {
+    return false;
+  }
+
+  std::error_code error;
+  const auto file_size = std::filesystem::file_size(file, error);
+  if (error || file_size == 0) {
+    return false;
+  }
+  if (file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max()) ||
+      file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+    return false;
+  }
+
+  size = static_cast<std::size_t>(file_size);
+  return true;
+}
+
 static TF_Buffer* ReadBufferFromFile(const char* file) {
-  std::ifstream f(file, std::ios::binary);
-  SCOPE_EXIT{ f.close(); };
-  if (f.fail() || !f.is_open()) {
+  std::size_t file_size = 0;
+  if (!FileSizeForBuffer(file, file_size)) {
     return nullptr;
   }
 
-  if (f.seekg(0, std::ios::end).fail()) {
-    return nullptr;
-  }
-  auto fsize = f.tellg();
-  if (f.seekg(0, std::ios::beg).fail()) {
-    return nullptr;
-  }
-
-  if (fsize <= 0) {
-    return nullptr;
-  }
-
-  auto data = static_cast<char*>(std::malloc(fsize));
+  auto data = static_cast<char*>(std::malloc(file_size));
   if (data == nullptr) {
     return nullptr;
   }
 
-  if (f.read(data, fsize).fail()) {
+  std::ifstream f(file, std::ios::binary);
+  if (!f.is_open()) {
+    std::free(data);
+    return nullptr;
+  }
+
+  if (!f.read(data, static_cast<std::streamsize>(file_size))) {
     std::free(data);
     return nullptr;
   }
@@ -75,7 +91,7 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   }
 
   buf->data = data;
-  buf->length = fsize;
+  buf->length = file_size;
   buf->data_deallocator = DeallocateBuffer;
 
   return buf;

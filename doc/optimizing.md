@@ -64,6 +64,5 @@ For lower-level TensorFlow benchmarking, use tools from the TensorFlow source tr
 
 ## References
 
-- TensorFlow C API install notes: https://www.tensorflow.org/install/lang_c
 - TensorFlow SavedModel guide: https://www.tensorflow.org/guide/saved_model
 - TensorFlow Lite model optimization: https://www.tensorflow.org/lite/performance/model_optimization

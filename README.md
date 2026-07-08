@@ -68,51 +68,55 @@ ctest --output-on-failure -C Release
 
 ### Notes
 
-* CMake downloads TensorFlow 2.21.0 from the Python wheel into `hello_tf_c_api/tensorflow/python`. It does not install TensorFlow into the system Python.
+* CMake downloads TensorFlow 2.21.0 from the Python wheel into the build-local `<build>/_deps/tensorflow/python` cache by default.
+* To use an existing local TensorFlow wheel extraction, configure with `-DTENSORFLOW_ROOT=/path/to/tensorflow`. Auto-fetch only writes to the default build-local TensorFlow cache; it refuses to overwrite an external `TENSORFLOW_ROOT`. To require a pre-existing extraction and disable downloads during configure, add `-DHELLO_TF_FETCH_TENSORFLOW=OFF`.
 * Python with pip is required during CMake configure.
 * The small GraphDef used by graph and session examples is committed as `models/graph.pb`; no external model download is required.
-* To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a virtual environment with a full TensorFlow Python package installed.
+* To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a Python environment where the full TensorFlow package is available.
 * OpenCV is optional. If CMake finds it, the OpenCV image-file example is built and tested.
 * On Windows, CMake copies the required TensorFlow runtime DLLs into the build output directories.
 * Tests use [doctest](test/3rdparty/doctest/doctest.h). CI also runs an ASan/UBSan test job on Ubuntu.
+* To configure only the helper library without example executables, add `-DHELLO_TF_BUILD_EXAMPLES=OFF`.
+* Tests follow CMake's standard `BUILD_TESTING` option. To configure without tests, add `-DBUILD_TESTING=OFF`.
 
 ## TensorFlow library
 
-This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local `tensorflow/python` directory. The CMake file creates an imported `tensorflow` target and copies required runtime libraries where needed.
+This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local `<TENSORFLOW_ROOT>/python` directory. The CMake file creates an imported `tensorflow` target, a `hello_tf_utils` helper library target, and copies required runtime libraries where needed.
+
+`tf_utils::LoadGraph` only imports a GraphDef. If a graph needs checkpoint restore operations, create the session first and call `tf_utils::RestoreCheckpoint(session, graph, ...)` on that session. TensorFlow variable state belongs to `TF_Session`, not to `TF_Graph`.
 
 If you want to link TensorFlow manually, use the headers from:
 
 ```text
-tensorflow/python/tensorflow/include
+<TENSORFLOW_ROOT>/python/tensorflow/include
 ```
 
 and the native libraries from:
 
 ```text
-tensorflow/python/tensorflow
-tensorflow/python/tensorflow/python
+<TENSORFLOW_ROOT>/python/tensorflow
+<TENSORFLOW_ROOT>/python/tensorflow/python
 ```
-
-For standalone C API packages, you can also download the TensorFlow C library from https://www.tensorflow.org/install/lang_c.
 
 You can also build the TensorFlow library version you need from source, with CPU or GPU support.
 
-### Use TensorFlow in another CMake project
+### Project-local CMake targets
 
 #### CMakeLists.txt
 
-Inside this project, examples use:
+Examples that use the helper API link the `hello_tf_utils` target:
+
+```text
+target_link_libraries(<target> PRIVATE hello_tf_utils)
+```
+
+Examples that demonstrate only the raw TensorFlow C API use:
 
 ```text
 target_link_tensorflow(<target>)
 ```
 
-For a separate CMake project, add the TensorFlow include directory and link the native library or imported target you define:
-
-```text
-target_include_directories(<target> PRIVATE path/to/tensorflow/include)
-target_link_libraries(<target> PRIVATE path/to/tensorflow/library)
-```
+If another project needs a small part of this repository, copy the relevant example or helper source and wire it to that project's TensorFlow target explicitly. This repository is maintained as local examples plus tests, not as a packaged dependency.
 
 ### Use TensorFlow in Visual Studio
 
@@ -132,7 +136,6 @@ This repository already includes the demo `models/graph.pb` used by the examples
 
 ### Further reading
 
-* https://www.tensorflow.org/install/lang_c
 * https://www.tensorflow.org/guide/saved_model
 * https://www.tensorflow.org/lite/performance/model_optimization
 

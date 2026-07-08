@@ -124,8 +124,6 @@ constexpr TF_DataType TensorDataTypeValue() {
 
 } // namespace detail
 
-TF_Graph* LoadGraph(const char* graph_path, const char* checkpoint_prefix, TF_Status* status = nullptr);
-
 TF_Graph* LoadGraph(const char* graph_path, TF_Status* status = nullptr);
 
 void DeleteGraph(TF_Graph* graph);
@@ -135,6 +133,18 @@ TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status
 TF_Session* CreateSession(TF_Graph* graph, TF_Status* status = nullptr);
 
 TF_Code DeleteSession(TF_Session* session, TF_Status* status = nullptr);
+
+TF_Code RestoreCheckpoint(TF_Session* session,
+                          TF_Graph* graph,
+                          const char* checkpoint_prefix,
+                          const char* checkpoint_prefix_input_operation_name,
+                          const char* restore_operation_name,
+                          TF_Status* status = nullptr);
+
+TF_Code RestoreCheckpoint(TF_Session* session,
+                          TF_Graph* graph,
+                          const char* checkpoint_prefix,
+                          TF_Status* status = nullptr);
 
 TF_Code RunSession(TF_Session* session,
                    const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
@@ -255,7 +265,7 @@ std::vector<std::vector<std::int64_t>> GetTensorsShape(TF_Graph* graph, const st
 
 TF_SessionOptions* CreateSessionOptions(double gpu_memory_fraction, TF_Status* status = nullptr);
 
-TF_SessionOptions* CreateSessionOptions(std::uint8_t intra_op_parallelism_threads, std::uint8_t inter_op_parallelism_threads, TF_Status* status = nullptr);
+TF_SessionOptions* CreateSessionOptions(std::int32_t intra_op_parallelism_threads, std::int32_t inter_op_parallelism_threads, TF_Status* status = nullptr);
 
 void DeleteSessionOptions(TF_SessionOptions* options);
 

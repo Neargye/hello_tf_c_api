@@ -9,7 +9,7 @@ The example graph is intentionally small and has the operation names used by the
 - input: `input_4`
 - output: `output_node0`
 
-To regenerate this demo graph, use a normal Python environment with TensorFlow installed and run:
+To regenerate this demo graph, use a normal Python environment where TensorFlow is available and run:
 
 ```text
 python tools/create_example_graph.py --output models/graph.pb
@@ -49,5 +49,4 @@ Keep the inference artifact small and predictable:
 
 ## References
 
-- TensorFlow C API install notes: https://www.tensorflow.org/install/lang_c
 - TensorFlow SavedModel guide: https://www.tensorflow.org/guide/saved_model

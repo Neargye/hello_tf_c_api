@@ -1,4 +1,5 @@
 build/
+build-*/
 tensorflow/
 models/*
 !models/graph.pb

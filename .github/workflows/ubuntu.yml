@@ -35,7 +35,7 @@ jobs:
 
     - uses: actions/cache@v4
       with:
-        path: tensorflow/python
+        path: build/_deps/tensorflow/python
         key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
 
     - name: Configure
@@ -59,8 +59,8 @@ jobs:
 
     - uses: actions/cache@v4
       with:
-        path: tensorflow/python
-        key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0
+        path: build-sanitizers/_deps/tensorflow/python
+        key: ${{ runner.os }}-${{ runner.arch }}-python-3.12-tensorflow-2.21.0-sanitizers
 
     - name: Build and test with ASan/UBSan
       env:

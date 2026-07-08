@@ -88,6 +88,31 @@ TF_Operation* AddNoOp(TF_Graph* graph, const char* name, TF_Status* status) {
   return TF_FinishOperation(desc, status);
 }
 
+TF_Operation* AddVariable(TF_Graph* graph, const char* name, TF_Status* status) {
+  auto desc = TF_NewOperation(graph, "VarHandleOp", name);
+  TF_SetAttrType(desc, "dtype", TF_FLOAT);
+  TF_SetAttrShape(desc, "shape", nullptr, 0);
+
+  return TF_FinishOperation(desc, status);
+}
+
+TF_Operation* AddAssign(TF_Graph* graph, const char* name, TF_Output variable, TF_Output value, TF_Status* status) {
+  auto desc = TF_NewOperation(graph, "AssignVariableOp", name);
+  TF_AddInput(desc, variable);
+  TF_AddInput(desc, value);
+  TF_SetAttrType(desc, "dtype", TF_FLOAT);
+
+  return TF_FinishOperation(desc, status);
+}
+
+TF_Operation* AddReadVariable(TF_Graph* graph, const char* name, TF_Output variable, TF_Status* status) {
+  auto desc = TF_NewOperation(graph, "ReadVariableOp", name);
+  TF_AddInput(desc, variable);
+  TF_SetAttrType(desc, "dtype", TF_FLOAT);
+
+  return TF_FinishOperation(desc, status);
+}
+
 } // namespace
 
 TEST_CASE("Hello TF C API") {
@@ -121,6 +146,10 @@ TEST_CASE("CreateTensor rejects mismatched tensor types and byte sizes") {
   CHECK(tf_utils::CreateTensor(TF_FLOAT, dims.data(), dims.size(), short_values.data(), short_values.size() * sizeof(float)) == nullptr);
   CHECK(tf_utils::CreateTensor(TF_FLOAT, dims.data(), dims.size(), long_values.data(), long_values.size() * sizeof(float)) == nullptr);
   CHECK(tf_utils::CreateTensor(TF_STRING, dims, int_values) == nullptr);
+  CHECK(tf_utils::CreateTensor(TF_STRING, dims.data(), dims.size(), nullptr, 0) == nullptr);
+  CHECK(tf_utils::CreateEmptyTensor(TF_STRING, dims, 0) == nullptr);
+  CHECK(tf_utils::CreateEmptyTensor(TF_FLOAT, dims, short_values.size() * sizeof(float)) == nullptr);
+  CHECK(tf_utils::CreateEmptyTensor(TF_FLOAT, dims, long_values.size() * sizeof(float)) == nullptr);
 }
 
 TEST_CASE("SetTensorData validates null tensors and updates tensor data") {
@@ -155,11 +184,126 @@ TEST_CASE("GetTensorData rejects mismatched tensor value types") {
 }
 
 TEST_CASE("Public helpers reject invalid arguments") {
-  CHECK(tf_utils::LoadGraph(nullptr) == nullptr);
-  CHECK(tf_utils::LoadGraph("missing_graph.pb") == nullptr);
-  CHECK(tf_utils::CreateSession(nullptr) == nullptr);
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
 
-  CHECK(tf_utils::RunSession(nullptr, nullptr, nullptr, 0, nullptr, nullptr, 0) == TF_INVALID_ARGUMENT);
+  CHECK(tf_utils::LoadGraph(nullptr, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::LoadGraph("missing_graph.pb", status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_NOT_FOUND);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::CreateSession(nullptr, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::DeleteSession(nullptr, status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::RunSession(nullptr, nullptr, nullptr, 0, nullptr, nullptr, 0, status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("RestoreCheckpoint validates session graph and operation names") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  CHECK(tf_utils::RestoreCheckpoint(nullptr, nullptr, "checkpoint", "input", "restore", status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  CHECK(tf_utils::RestoreCheckpoint(session, graph, nullptr, "input", "restore", status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::RestoreCheckpoint(session, graph, "checkpoint", nullptr, "restore", status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::RestoreCheckpoint(session, graph, "checkpoint", "missing_input", "missing_restore", status) == TF_NOT_FOUND);
+  CHECK(TF_GetCode(status) == TF_NOT_FOUND);
+}
+
+TEST_CASE("RestoreCheckpoint runs restore target in caller-owned session") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto checkpoint_input = AddPlaceholder(graph, "checkpoint_path", TF_STRING, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(checkpoint_input != nullptr);
+
+  auto variable = AddVariable(graph, "weight", status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(variable != nullptr);
+
+  auto restored_value = AddFloatConst(graph, "restored_value", 7.0f, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(restored_value != nullptr);
+
+  auto restore_target = AddAssign(graph, "custom_restore", TF_Output{variable, 0}, TF_Output{restored_value, 0}, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(restore_target != nullptr);
+
+  auto read = AddReadVariable(graph, "read_weight", TF_Output{variable, 0}, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(read != nullptr);
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  CHECK(tf_utils::RestoreCheckpoint(session, graph, "checkpoint-prefix", "checkpoint_path", "custom_restore", status) == TF_OK);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+
+  const std::vector<TF_Output> inputs = {};
+  const std::vector<TF_Tensor*> input_tensors = {};
+  const std::vector<TF_Output> outputs = {TF_Output{read, 0}};
+  std::vector<TF_Tensor*> output_tensors = {nullptr};
+  SCOPE_EXIT{ tf_utils::DeleteTensors(output_tensors); };
+
+  CHECK(tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status) == TF_OK);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(output_tensors[0] != nullptr);
+  CHECK(tf_utils::GetTensorData<float>(output_tensors[0]) == std::vector<float>{7.0f});
+}
+
+TEST_CASE("RestoreCheckpoint preserves TensorFlow status on restore failure") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  auto graph = TF_NewGraph();
+  SCOPE_EXIT{ TF_DeleteGraph(graph); };
+
+  auto checkpoint_input = AddPlaceholder(graph, "checkpoint_path", TF_FLOAT, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(checkpoint_input != nullptr);
+
+  auto restore_target = AddIdentity(graph, "custom_restore", TF_Output{checkpoint_input, 0}, TF_FLOAT, status);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(restore_target != nullptr);
+
+  auto session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(session); };
+  REQUIRE(TF_GetCode(status) == TF_OK);
+  REQUIRE(session != nullptr);
+
+  CHECK(tf_utils::RestoreCheckpoint(session, graph, "checkpoint-prefix", "checkpoint_path", "custom_restore", status) != TF_OK);
+  CHECK(TF_GetCode(status) != TF_OK);
 }
 
 TEST_CASE("CreateSessionOptions helpers create usable TensorFlow session options") {
@@ -179,27 +323,86 @@ TEST_CASE("CreateSessionOptions helpers create usable TensorFlow session options
   REQUIRE(gpu_session != nullptr);
   CHECK(TF_GetCode(status) == TF_OK);
 
-  auto thread_options = tf_utils::CreateSessionOptions(std::uint8_t{1}, std::uint8_t{2}, status);
+  auto thread_options = tf_utils::CreateSessionOptions(1, 2, status);
   SCOPE_EXIT{ tf_utils::DeleteSessionOptions(thread_options); };
   REQUIRE(thread_options != nullptr);
+  REQUIRE(TF_GetCode(status) == TF_OK);
+
+  auto high_thread_options = tf_utils::CreateSessionOptions(1024, 128, status);
+  SCOPE_EXIT{ tf_utils::DeleteSessionOptions(high_thread_options); };
+  REQUIRE(high_thread_options != nullptr);
   REQUIRE(TF_GetCode(status) == TF_OK);
 
   auto thread_session = tf_utils::CreateSession(graph, thread_options, status);
   SCOPE_EXIT{ tf_utils::DeleteSession(thread_session); };
   REQUIRE(thread_session != nullptr);
   CHECK(TF_GetCode(status) == TF_OK);
+
+  auto high_thread_session = tf_utils::CreateSession(graph, high_thread_options, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(high_thread_session); };
+  REQUIRE(high_thread_session != nullptr);
+  CHECK(TF_GetCode(status) == TF_OK);
+
+  auto owned_status_options = tf_utils::CreateSessionOptions(0, 0);
+  SCOPE_EXIT{ tf_utils::DeleteSessionOptions(owned_status_options); };
+  REQUIRE(owned_status_options != nullptr);
+}
+
+TEST_CASE("CreateSessionOptions rejects invalid gpu memory fractions") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  CHECK(tf_utils::CreateSessionOptions(-0.01, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::CreateSessionOptions(1.01, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::CreateSessionOptions(std::numeric_limits<double>::infinity(), status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::CreateSessionOptions(std::numeric_limits<double>::quiet_NaN(), status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("CreateSessionOptions rejects negative thread counts") {
+  auto status = TF_NewStatus();
+  SCOPE_EXIT{ TF_DeleteStatus(status); };
+
+  CHECK(tf_utils::CreateSessionOptions(-1, 1, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
+
+  TF_SetStatus(status, TF_OK, "");
+  CHECK(tf_utils::CreateSessionOptions(1, -1, status) == nullptr);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("CreateEmptyTensor supports scalar tensors") {
   const float value = 3.5f;
 
-  auto tensor = tf_utils::CreateEmptyTensor(TF_FLOAT, nullptr, 0, sizeof(float));
+  auto tensor = tf_utils::CreateEmptyTensor(TF_FLOAT, nullptr, 0);
   SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
 
   REQUIRE(tensor != nullptr);
   CHECK(TF_NumDims(tensor) == 0);
+  CHECK(TF_TensorByteSize(tensor) == sizeof(float));
   CHECK(tf_utils::SetTensorData(tensor, &value, sizeof(value)));
   CHECK(tf_utils::GetTensorData<float>(tensor) == std::vector<float>{value});
+}
+
+TEST_CASE("CreateEmptyTensor infers and validates fixed-size tensor byte size") {
+  const std::vector<std::int64_t> dims = {2, 2};
+
+  auto tensor = tf_utils::CreateEmptyTensor(TF_FLOAT, dims);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
+  REQUIRE(tensor != nullptr);
+  CHECK(TF_TensorByteSize(tensor) == 4 * sizeof(float));
+  CHECK(tf_utils::CreateEmptyTensor(TF_FLOAT, dims, sizeof(float)) == nullptr);
+  CHECK(tf_utils::CreateEmptyTensor(TF_FLOAT, dims, 5 * sizeof(float)) == nullptr);
 }
 
 TEST_CASE("Public helpers reject dimensions and counts that do not fit TensorFlow C API int parameters") {
@@ -224,6 +427,7 @@ TEST_CASE("Public helpers reject dimensions and counts that do not fit TensorFlo
   TF_Output input{nullptr, 0};
   TF_Tensor* input_tensor = nullptr;
   CHECK(tf_utils::RunSession(session, &input, &input_tensor, too_many, nullptr, nullptr, 0, status) == TF_INVALID_ARGUMENT);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("GetTensorShape handles unknown rank safely") {
@@ -276,11 +480,12 @@ TEST_CASE("RunSession rejects mismatched vector sizes before calling TensorFlow"
 
   std::vector<TF_Output> empty_inputs;
   CHECK(tf_utils::RunSession(session, empty_inputs, input_tensors, outputs, output_tensors, status) == TF_INVALID_ARGUMENT);
-  CHECK(TF_GetCode(status) == TF_OK);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
 
+  TF_SetStatus(status, TF_OK, "");
   std::vector<TF_Tensor*> empty_outputs;
   CHECK(tf_utils::RunSession(session, inputs, input_tensors, outputs, empty_outputs, status) == TF_INVALID_ARGUMENT);
-  CHECK(TF_GetCode(status) == TF_OK);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("RunSession raw overload accepts zero input count with null input arrays") {
@@ -348,7 +553,7 @@ TEST_CASE("RunSession target overload rejects missing target array") {
   REQUIRE(session != nullptr);
 
   CHECK(tf_utils::RunSession(session, nullptr, nullptr, 0, nullptr, nullptr, 0, nullptr, 1, status) == TF_INVALID_ARGUMENT);
-  CHECK(TF_GetCode(status) == TF_OK);
+  CHECK(TF_GetCode(status) == TF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("CreateStringTensor validates shape and round-trips embedded nulls") {
@@ -365,6 +570,19 @@ TEST_CASE("CreateStringTensor validates shape and round-trips embedded nulls") {
   CHECK(TF_TensorType(tensor) == TF_STRING);
   CHECK(tf_utils::GetStringTensorData(tensor) == strings);
   CHECK(tf_utils::GetStringTensorElement(tensor, strings.size()).empty());
+}
+
+TEST_CASE("Raw byte tensor helpers reject string tensor storage") {
+  const std::vector<std::int64_t> dims = {1};
+  const std::vector<std::string> strings = {"value"};
+
+  auto tensor = tf_utils::CreateStringTensor(dims, strings);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(tensor); };
+
+  REQUIRE(tensor != nullptr);
+  std::uintptr_t raw_value = 0;
+  CHECK_FALSE(tf_utils::SetTensorData(tensor, &raw_value, TF_TensorByteSize(tensor)));
+  CHECK(tf_utils::GetStringTensorData(tensor) == strings);
 }
 
 TEST_CASE("CreateStringTensor supports scalar and empty strings") {
