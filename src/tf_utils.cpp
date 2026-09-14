@@ -33,6 +33,7 @@
 #include <limits>
 #include <memory>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace tf_utils {
@@ -48,8 +49,7 @@ struct StringTensorDeallocatorArg {
 };
 
 struct StringTensorStorage {
-  explicit StringTensorStorage(std::size_t size)
-      : data(new TF_TString[size]) {}
+  explicit StringTensorStorage(std::size_t size) : data(new TF_TString[size]) {}
 
   ~StringTensorStorage() {
     if (data == nullptr) {
@@ -95,7 +95,11 @@ static void DeallocateStringTensor(void* data, size_t, void* arg) {
 }
 
 static bool ShapeElementCount(const std::int64_t* dims, std::size_t num_dims, std::size_t& count) {
-  if (dims == nullptr && num_dims != 0) {
+  // TensorShape uses an 8-bit rank (255 is reserved) and an int64_t element count.
+  constexpr std::size_t max_rank = 254;
+  constexpr auto max_tensor_elements = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+  constexpr auto max_buffer_elements = std::numeric_limits<std::size_t>::max();
+  if (num_dims > max_rank || (dims == nullptr && num_dims != 0)) {
     return false;
   }
 
@@ -104,26 +108,18 @@ static bool ShapeElementCount(const std::int64_t* dims, std::size_t num_dims, st
     if (dims[i] < 0) {
       return false;
     }
-    const auto dim = static_cast<std::size_t>(dims[i]);
-    if (dim != 0 && count > std::numeric_limits<std::size_t>::max() / dim) {
+    const auto dim = static_cast<std::uint64_t>(dims[i]);
+    if (dim != 0 && (count > max_tensor_elements / dim || count > max_buffer_elements / dim)) {
       return false;
     }
-    count *= dim;
+    count *= static_cast<std::size_t>(dim);
   }
 
   return true;
 }
 
-static std::size_t FixedSizeDataTypeByteSize(TF_DataType data_type) {
-  return TF_DataTypeSize(data_type);
-}
-
 static bool FitsTensorFlowIntParameter(std::size_t value) {
   return value <= static_cast<std::size_t>(std::numeric_limits<int>::max());
-}
-
-static bool IsFixedSizeTensorDataType(TF_DataType data_type) {
-  return FixedSizeDataTypeByteSize(data_type) != 0;
 }
 
 static void SetStatus(TF_Status* status, TF_Code code, const char* message) {
@@ -135,6 +131,10 @@ static void SetStatus(TF_Status* status, TF_Code code, const char* message) {
 static TF_Code InvalidArgument(TF_Status* status, const char* message) {
   SetStatus(status, TF_INVALID_ARGUMENT, message);
   return TF_INVALID_ARGUMENT;
+}
+
+static bool IsValidOutput(const TF_Output& output) {
+  return output.oper != nullptr && output.index >= 0 && output.index < TF_OperationNumOutputs(output.oper);
 }
 
 static void StoreLittleEndianDouble(double value, std::array<std::uint8_t, sizeof(double)>& output) {
@@ -176,16 +176,12 @@ static void AppendProtobufBoolField(std::uint32_t field_number, bool value, std:
   output.push_back(value ? std::uint8_t{1} : std::uint8_t{0});
 }
 
-static void AppendProtobufFixed64Field(std::uint32_t field_number,
-                                        const std::array<std::uint8_t, sizeof(double)>& value,
-                                        std::vector<std::uint8_t>& output) {
+static void AppendProtobufFixed64Field(std::uint32_t field_number, const std::array<std::uint8_t, sizeof(double)>& value, std::vector<std::uint8_t>& output) {
   AppendProtobufKey(field_number, ProtobufWireType::Fixed64, output);
   output.insert(output.end(), value.begin(), value.end());
 }
 
-static void AppendProtobufMessageField(std::uint32_t field_number,
-                                       const std::vector<std::uint8_t>& message,
-                                       std::vector<std::uint8_t>& output) {
+static void AppendProtobufMessageField(std::uint32_t field_number, const std::vector<std::uint8_t>& message, std::vector<std::uint8_t>& output) {
   AppendProtobufKey(field_number, ProtobufWireType::LengthDelimited, output);
   AppendProtobufVarint(static_cast<std::uint32_t>(message.size()), output);
   output.insert(output.end(), message.begin(), message.end());
@@ -201,8 +197,9 @@ static bool FileSizeForBuffer(const char* file, std::size_t& size) {
   if (error || file_size == 0) {
     return false;
   }
-  if (file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max()) ||
-      file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+  constexpr auto max_buffer_size = static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max());
+  constexpr auto max_stream_size = static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max());
+  if (file_size > max_buffer_size || file_size > max_stream_size) {
     return false;
   }
 
@@ -216,21 +213,18 @@ static void CleanupSessionAfterCloseFailure(TF_Session* session) {
     return;
   }
 
-  TF_CloseSession(session, cleanup_status);
+  // TF_DeleteSession releases local resources even when closing failed.
   TF_DeleteSession(session, cleanup_status);
   TF_DeleteStatus(cleanup_status);
 }
 
-static bool ExpectedTensorByteSize(TF_DataType data_type,
-                                   const std::int64_t* dims,
-                                   std::size_t num_dims,
-                                   std::size_t& byte_size) {
+static bool ExpectedTensorByteSize(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t& byte_size) {
   std::size_t element_count = 0;
   if (!ShapeElementCount(dims, num_dims, element_count)) {
     return false;
   }
 
-  const auto element_size = FixedSizeDataTypeByteSize(data_type);
+  const auto element_size = TF_DataTypeSize(data_type);
   if (element_size == 0) {
     return false;
   }
@@ -264,16 +258,11 @@ TF_Tensor* CreateStringTensorImpl(const std::int64_t* dims, std::size_t num_dims
   }
 
   auto deallocator_arg = std::make_unique<StringTensorDeallocatorArg>(StringTensorDeallocatorArg{num_strings});
-  auto tensor = TF_NewTensor(TF_STRING,
-                             dims, static_cast<int>(num_dims),
-                             storage.get(), num_strings * sizeof(TF_TString),
-                             &DeallocateStringTensor, deallocator_arg.get());
-  if (tensor != nullptr) {
-    storage.release();
-    deallocator_arg.release();
-  }
-
-  return tensor;
+  // TF_NewTensor owns both arguments, including when it returns nullptr.
+  return TF_NewTensor(TF_STRING,
+                      dims, static_cast<int>(num_dims),
+                      storage.release(), num_strings * sizeof(TF_TString),
+                      &DeallocateStringTensor, deallocator_arg.release());
 }
 
 static TF_Buffer* ReadBufferFromFile(const char* file) {
@@ -311,7 +300,7 @@ static TF_Buffer* ReadBufferFromFile(const char* file) {
   return buf;
 }
 
-TF_Tensor* ScalarStringTensor(const char* str, TF_Status*) {
+TF_Tensor* ScalarStringTensor(const char* str) {
   const std::string_view value(str);
 
   return CreateStringTensor(nullptr, 0, &value, 1);
@@ -347,8 +336,7 @@ std::vector<std::uint8_t> CreateGpuMemorySessionConfig(double gpu_memory_fractio
   return config;
 }
 
-std::vector<std::uint8_t> CreateThreadSessionConfig(std::int32_t intra_op_parallelism_threads,
-                                                    std::int32_t inter_op_parallelism_threads) {
+std::vector<std::uint8_t> CreateThreadSessionConfig(std::int32_t intra_op_parallelism_threads, std::int32_t inter_op_parallelism_threads) {
   constexpr std::uint32_t intra_op_parallelism_threads_field = 2; // ConfigProto.intra_op_parallelism_threads.
   constexpr std::uint32_t inter_op_parallelism_threads_field = 5; // ConfigProto.inter_op_parallelism_threads.
 
@@ -487,11 +475,9 @@ TF_Code DeleteSession(TF_Session* session, TF_Status* status) {
   return TF_GetCode(status);
 }
 
-TF_Code RestoreCheckpoint(TF_Session* session,
-                          TF_Graph* graph,
+TF_Code RestoreCheckpoint(TF_Session* session, TF_Graph* graph,
                           const char* checkpoint_prefix,
-                          const char* checkpoint_prefix_input_operation_name,
-                          const char* restore_operation_name,
+                          const char* checkpoint_prefix_input_operation_name, const char* restore_operation_name,
                           TF_Status* status) {
   if (session == nullptr) {
     return InvalidArgument(status, "Session must not be null.");
@@ -506,7 +492,7 @@ TF_Code RestoreCheckpoint(TF_Session* session,
     return InvalidArgument(status, "Checkpoint restore operation names must not be null.");
   }
 
-  auto checkpoint_tensor = ScalarStringTensor(checkpoint_prefix, status);
+  auto checkpoint_tensor = ScalarStringTensor(checkpoint_prefix);
   SCOPE_EXIT{ DeleteTensor(checkpoint_tensor); };
   if (checkpoint_tensor == nullptr) {
     SetStatus(status, TF_RESOURCE_EXHAUSTED, "Failed to create checkpoint prefix tensor.");
@@ -533,10 +519,7 @@ TF_Code RestoreCheckpoint(TF_Session* session,
                     status);
 }
 
-TF_Code RestoreCheckpoint(TF_Session* session,
-                          TF_Graph* graph,
-                          const char* checkpoint_prefix,
-                          TF_Status* status) {
+TF_Code RestoreCheckpoint(TF_Session* session, TF_Graph* graph, const char* checkpoint_prefix, TF_Status* status) {
   return RestoreCheckpoint(session, graph, checkpoint_prefix, "save/Const", "save/restore_all", status);
 }
 
@@ -574,10 +557,27 @@ TF_Code RunSession(TF_Session* session,
   if (ntargets != 0 && target_opers == nullptr) {
     return InvalidArgument(status, "Target operation array must not be null when target count is non-zero.");
   }
-  if (!FitsTensorFlowIntParameter(ninputs) ||
-      !FitsTensorFlowIntParameter(noutputs) ||
-      !FitsTensorFlowIntParameter(ntargets)) {
+  if (!FitsTensorFlowIntParameter(ninputs) || !FitsTensorFlowIntParameter(noutputs) || !FitsTensorFlowIntParameter(ntargets)) {
     return InvalidArgument(status, "Input, output, and target counts must fit TensorFlow C API int parameters.");
+  }
+
+  for (std::size_t i = 0; i < ninputs; ++i) {
+    if (!IsValidOutput(inputs[i]) || input_tensors[i] == nullptr) {
+      return InvalidArgument(status, "Each input must have a valid operation output and a non-null tensor.");
+    }
+  }
+  for (std::size_t i = 0; i < noutputs; ++i) {
+    if (!IsValidOutput(outputs[i])) {
+      return InvalidArgument(status, "Each output must have a valid operation and output index.");
+    }
+    if (output_tensors[i] != nullptr) {
+      return InvalidArgument(status, "Output tensor slots must be null to avoid overwriting owned tensors.");
+    }
+  }
+  for (std::size_t i = 0; i < ntargets; ++i) {
+    if (target_opers[i] == nullptr) {
+      return InvalidArgument(status, "Each target operation must not be null.");
+    }
   }
 
   MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
@@ -586,7 +586,6 @@ TF_Code RunSession(TF_Session* session,
   } else {
     delete_status.dismiss();
   }
-
 
   TF_SessionRun(session,
                 nullptr, // Run options.
@@ -630,8 +629,7 @@ TF_Code RunSession(TF_Session* session,
                     status);
 }
 
-TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims,
-                              const std::string_view* strings, std::size_t num_strings) {
+TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims, const std::string_view* strings, std::size_t num_strings) {
   if (strings == nullptr && num_strings != 0) {
     return nullptr;
   }
@@ -651,51 +649,81 @@ TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::
   });
 }
 
-std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index) {
-  if (tensor == nullptr || TF_TensorType(tensor) != TF_STRING) {
-    return {};
+TF_Code detail::ValidateTensorData(const TF_Tensor* tensor, TF_DataType data_type, std::size_t element_size, TF_Status* status) {
+  if (tensor == nullptr) {
+    return InvalidArgument(status, "Tensor must not be null.");
   }
-
+  if (TF_TensorType(tensor) != data_type) {
+    return InvalidArgument(status, "Tensor type does not match the requested value type.");
+  }
   const auto byte_size = TF_TensorByteSize(tensor);
-  if (byte_size % sizeof(TF_TString) != 0 || index >= byte_size / sizeof(TF_TString)) {
-    return {};
+  const auto element_count = TF_TensorElementCount(tensor);
+  if (element_size == 0 || element_count < 0 ||
+      static_cast<std::uint64_t>(element_count) > byte_size / element_size) {
+    return InvalidArgument(status, "Tensor buffer is too small for its shape and value type.");
+  }
+  if (element_count != 0 && TF_TensorData(tensor) == nullptr) {
+    return InvalidArgument(status, "Non-empty tensor data must not be null.");
+  }
+  SetStatus(status, TF_OK, "");
+  return TF_OK;
+}
+
+TF_Code GetStringTensorElement(const TF_Tensor* tensor, std::size_t index, std::string& result, TF_Status* status) {
+  const auto code = detail::ValidateTensorData(tensor, TF_STRING, sizeof(TF_TString), status);
+  if (code != TF_OK) {
+    return code;
+  }
+  if (index >= static_cast<std::size_t>(TF_TensorElementCount(tensor))) {
+    return InvalidArgument(status, "String tensor index is out of range.");
   }
 
   const auto data = static_cast<const TF_TString*>(TF_TensorData(tensor));
-  if (data == nullptr) {
-    return {};
-  }
-
   const auto* str = &data[index];
   const auto* begin = TF_StringGetDataPointer(str);
   const auto size = TF_StringGetSize(str);
   if (size == 0) {
-    return {};
+    result.clear();
+    return TF_OK;
   }
   if (begin == nullptr) {
-    return {};
+    return InvalidArgument(status, "Non-empty string data must not be null.");
   }
 
-  return {begin, size};
+  result.assign(begin, size);
+  return TF_OK;
+}
+
+TF_Code GetStringTensorData(const TF_Tensor* tensor, std::vector<std::string>& result, TF_Status* status) {
+  const auto code = detail::ValidateTensorData(tensor, TF_STRING, sizeof(TF_TString), status);
+  if (code != TF_OK) {
+    return code;
+  }
+
+  std::vector<std::string> strings;
+  const auto size = static_cast<std::size_t>(TF_TensorElementCount(tensor));
+  strings.reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    std::string value;
+    const auto element_code = GetStringTensorElement(tensor, i, value, status);
+    if (element_code != TF_OK) {
+      return element_code;
+    }
+    strings.push_back(std::move(value));
+  }
+  result = std::move(strings);
+  return TF_OK;
+}
+
+std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index) {
+  std::string result;
+  GetStringTensorElement(tensor, index, result);
+  return result;
 }
 
 std::vector<std::string> GetStringTensorData(const TF_Tensor* tensor) {
-  if (tensor == nullptr || TF_TensorType(tensor) != TF_STRING) {
-    return {};
-  }
-
-  const auto byte_size = TF_TensorByteSize(tensor);
-  if (byte_size % sizeof(TF_TString) != 0) {
-    return {};
-  }
-
   std::vector<std::string> result;
-  const auto size = byte_size / sizeof(TF_TString);
-  result.reserve(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    result.push_back(GetStringTensorElement(tensor, i));
-  }
-
+  GetStringTensorData(tensor, result);
   return result;
 }
 
@@ -721,9 +749,11 @@ TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::vector<std::int64
   return CreateEmptyTensor(data_type, dims.data(), dims.size(), len);
 }
 
-TF_Tensor* CreateTensor(TF_DataType data_type,
-                        const std::int64_t* dims, std::size_t num_dims,
-                        const void* data, std::size_t len) {
+TF_Tensor* CreateTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, const void* data, std::size_t len) {
+  if (data == nullptr && len != 0) {
+    return nullptr;
+  }
+
   std::size_t expected_len = 0;
   if (!ExpectedTensorByteSize(data_type, dims, num_dims, expected_len) || len != expected_len) {
     return nullptr;
@@ -739,7 +769,7 @@ TF_Tensor* CreateTensor(TF_DataType data_type,
     return tensor;
   }
 
-  if (tensor_data == nullptr || data == nullptr) {
+  if (tensor_data == nullptr) {
     DeleteTensor(tensor);
     return nullptr;
   }
@@ -765,12 +795,15 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
   if (tensor == nullptr) {
     return false;
   }
-  if (!IsFixedSizeTensorDataType(TF_TensorType(tensor))) {
+  const auto data_type = TF_TensorType(tensor);
+  const auto element_size = TF_DataTypeSize(data_type);
+  if (detail::ValidateTensorData(tensor, data_type, element_size, nullptr) != TF_OK) {
     return false;
   }
 
   auto tensor_data = TF_TensorData(tensor);
-  if (len != TF_TensorByteSize(tensor)) {
+  const auto element_count = static_cast<std::size_t>(TF_TensorElementCount(tensor));
+  if (len != element_count * element_size) {
     return false;
   }
   if (len == 0) {
@@ -780,30 +813,46 @@ bool SetTensorData(TF_Tensor* tensor, const void* data, std::size_t len) {
     return false;
   }
 
-  std::memcpy(tensor_data, data, len);
+  std::memmove(tensor_data, data, len);
   return true;
 }
 
-std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output) {
-  if (graph == nullptr || output.oper == nullptr) {
-    return {};
+TF_Code GetTensorShape(TF_Graph* graph, const TF_Output& output, std::optional<std::vector<std::int64_t>>& result, TF_Status* status) {
+  if (graph == nullptr || !IsValidOutput(output)) {
+    return InvalidArgument(status, "Graph and operation output must be valid.");
   }
 
-  auto status = TF_NewStatus();
-  SCOPE_EXIT{ TF_DeleteStatus(status); };
-
-  auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
-  if (TF_GetCode(status) != TF_OK || num_dims < 0) {
-    return {};
+  MAKE_SCOPE_EXIT(delete_status){ TF_DeleteStatus(status); };
+  if (status == nullptr) {
+    status = TF_NewStatus();
+  } else {
+    delete_status.dismiss();
   }
 
-  std::vector<std::int64_t> result(num_dims);
-  TF_GraphGetTensorShape(graph, output, result.data(), num_dims, status);
+  // Shape queries may leave status untouched on success.
+  TF_SetStatus(status, TF_OK, "");
+  const auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
   if (TF_GetCode(status) != TF_OK) {
-    return {};
+    return TF_GetCode(status);
+  }
+  if (num_dims < 0) {
+    result.reset();
+    return TF_OK;
   }
 
-  return result;
+  std::vector<std::int64_t> dims(num_dims);
+  TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
+  if (TF_GetCode(status) != TF_OK) {
+    return TF_GetCode(status);
+  }
+  result = std::move(dims);
+  return TF_OK;
+}
+
+std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output) {
+  std::optional<std::vector<std::int64_t>> result;
+  GetTensorShape(graph, output, result);
+  return result ? std::move(*result) : std::vector<std::int64_t>{};
 }
 
 std::vector<std::vector<std::int64_t>> GetTensorsShape(TF_Graph* graph, const std::vector<TF_Output>& outputs) {
@@ -891,6 +940,26 @@ const char* DataTypeToString(TF_DataType data_type) {
       return "TF_UINT32";
     case TF_UINT64:
       return "TF_UINT64";
+    case TF_FLOAT8_E5M2:
+      return "TF_FLOAT8_E5M2";
+    case TF_FLOAT8_E4M3FN:
+      return "TF_FLOAT8_E4M3FN";
+    case TF_FLOAT8_E4M3FNUZ:
+      return "TF_FLOAT8_E4M3FNUZ";
+    case TF_FLOAT8_E4M3B11FNUZ:
+      return "TF_FLOAT8_E4M3B11FNUZ";
+    case TF_FLOAT8_E5M2FNUZ:
+      return "TF_FLOAT8_E5M2FNUZ";
+    case TF_INT4:
+      return "TF_INT4";
+    case TF_UINT4:
+      return "TF_UINT4";
+    case TF_INT2:
+      return "TF_INT2";
+    case TF_UINT2:
+      return "TF_UINT2";
+    case TF_FLOAT4_E2M1FN:
+      return "TF_FLOAT4_E2M1FN";
     default:
       return "Unknown";
   }

@@ -34,6 +34,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -122,6 +123,8 @@ constexpr TF_DataType TensorDataTypeValue() {
   return TensorDataType<TensorValueType<T>>::value;
 }
 
+TF_Code ValidateTensorData(const TF_Tensor* tensor, TF_DataType data_type, std::size_t element_size, TF_Status* status);
+
 } // namespace detail
 
 TF_Graph* LoadGraph(const char* graph_path, TF_Status* status = nullptr);
@@ -132,20 +135,21 @@ TF_Session* CreateSession(TF_Graph* graph, TF_SessionOptions* options, TF_Status
 
 TF_Session* CreateSession(TF_Graph* graph, TF_Status* status = nullptr);
 
+inline TF_Session* CreateSession(TF_Graph* graph, std::nullptr_t) {
+  return CreateSession(graph, static_cast<TF_Status*>(nullptr));
+}
+
 TF_Code DeleteSession(TF_Session* session, TF_Status* status = nullptr);
 
-TF_Code RestoreCheckpoint(TF_Session* session,
-                          TF_Graph* graph,
+TF_Code RestoreCheckpoint(TF_Session* session, TF_Graph* graph,
                           const char* checkpoint_prefix,
-                          const char* checkpoint_prefix_input_operation_name,
-                          const char* restore_operation_name,
+                          const char* checkpoint_prefix_input_operation_name, const char* restore_operation_name,
                           TF_Status* status = nullptr);
 
-TF_Code RestoreCheckpoint(TF_Session* session,
-                          TF_Graph* graph,
-                          const char* checkpoint_prefix,
-                          TF_Status* status = nullptr);
+TF_Code RestoreCheckpoint(TF_Session* session, TF_Graph* graph, const char* checkpoint_prefix, TF_Status* status = nullptr);
 
+// All output tensor slots must be nullptr. The caller owns the returned tensors;
+// delete them and reset the slots to nullptr before reusing the output array.
 TF_Code RunSession(TF_Session* session,
                    const TF_Output* inputs, TF_Tensor* const* input_tensors, std::size_t ninputs,
                    const TF_Output* outputs, TF_Tensor** output_tensors, std::size_t noutputs,
@@ -168,9 +172,7 @@ TF_Code RunSession(TF_Session* session,
                    const std::vector<const TF_Operation*>& target_opers,
                    TF_Status* status = nullptr);
 
-TF_Tensor* CreateTensor(TF_DataType data_type,
-                        const std::int64_t* dims, std::size_t num_dims,
-                        const void* data, std::size_t len);
+TF_Tensor* CreateTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, const void* data, std::size_t len);
 
 template <typename T>
 TF_Tensor* CreateTensor(TF_DataType data_type, const std::vector<std::int64_t>& dims, const std::vector<T>& data) {
@@ -178,17 +180,19 @@ TF_Tensor* CreateTensor(TF_DataType data_type, const std::vector<std::int64_t>& 
   if (data_type != detail::TensorDataTypeValue<T>()) {
     return nullptr;
   }
-  if (data.size() > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+  if (data.size() > (std::numeric_limits<std::size_t>::max)() / sizeof(T)) {
     return nullptr;
   }
 
-  return CreateTensor(data_type,
-                      dims.data(), dims.size(),
-                      data.data(), data.size() * sizeof(T));
+  return CreateTensor(data_type, dims.data(), dims.size(), data.data(), data.size() * sizeof(T));
 }
 
-TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims,
-                              const std::string_view* strings, std::size_t num_strings);
+template <typename T>
+TF_Tensor* CreateTensor(const std::vector<std::int64_t>& dims, const std::vector<T>& data) {
+  return CreateTensor(detail::TensorDataTypeValue<T>(), dims, data);
+}
+
+TF_Tensor* CreateStringTensor(const std::int64_t* dims, std::size_t num_dims, const std::string_view* strings, std::size_t num_strings);
 
 TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::vector<std::string_view>& strings);
 
@@ -197,6 +201,11 @@ TF_Tensor* CreateStringTensor(const std::vector<std::int64_t>& dims, const std::
 std::string GetStringTensorElement(const TF_Tensor* tensor, std::size_t index);
 
 std::vector<std::string> GetStringTensorData(const TF_Tensor* tensor);
+
+// Checked readers return TF_OK for valid empty values and leave result unchanged on error.
+TF_Code GetStringTensorElement(const TF_Tensor* tensor, std::size_t index, std::string& result, TF_Status* status = nullptr);
+
+TF_Code GetStringTensorData(const TF_Tensor* tensor, std::vector<std::string>& result, TF_Status* status = nullptr);
 
 TF_Tensor* CreateEmptyTensor(TF_DataType data_type, const std::int64_t* dims, std::size_t num_dims, std::size_t len = 0);
 
@@ -214,38 +223,37 @@ bool SetTensorData(TF_Tensor* tensor, const std::vector<T>& data) {
   if (tensor == nullptr || TF_TensorType(tensor) != detail::TensorDataTypeValue<T>()) {
     return false;
   }
-  if (data.size() > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+  if (data.size() > (std::numeric_limits<std::size_t>::max)() / sizeof(T)) {
     return false;
   }
 
   return SetTensorData(tensor, data.data(), data.size() * sizeof(T));
 }
 
+// Returns TF_OK for a valid empty tensor; leaves result unchanged on error.
+template <typename T>
+TF_Code GetTensorData(const TF_Tensor* tensor, std::vector<T>& result, TF_Status* status = nullptr) {
+  static_assert(detail::IsSupportedTensorValueType<T>(), "Use GetStringTensorData for TF_STRING and supported arithmetic types for numeric tensors.");
+  const auto code = detail::ValidateTensorData(tensor, detail::TensorDataTypeValue<T>(), sizeof(T), status);
+  if (code != TF_OK) {
+    return code;
+  }
+
+  const auto size = static_cast<std::size_t>(TF_TensorElementCount(tensor));
+  if (size == 0) {
+    result.clear();
+  } else {
+    const auto data = static_cast<const T*>(TF_TensorData(tensor));
+    result = std::vector<T>(data, data + size);
+  }
+  return TF_OK;
+}
+
 template <typename T>
 std::vector<T> GetTensorData(const TF_Tensor* tensor) {
-  static_assert(detail::IsSupportedTensorValueType<T>(), "Use GetStringTensorData for TF_STRING and supported arithmetic types for numeric tensors.");
-  if (tensor == nullptr) {
-    return {};
-  }
-  if (TF_TensorType(tensor) != detail::TensorDataTypeValue<T>()) {
-    return {};
-  }
-
-  const auto byte_size = TF_TensorByteSize(tensor);
-  if (byte_size % sizeof(T) != 0) {
-    return {};
-  }
-
-  auto data = static_cast<const T*>(TF_TensorData(tensor));
-  auto size = byte_size / sizeof(T);
-  if (size == 0) {
-    return {};
-  }
-  if (data == nullptr) {
-    return {};
-  }
-
-  return {data, data + size};
+  std::vector<T> result;
+  GetTensorData(tensor, result);
+  return result;
 }
 
 template <typename T>
@@ -260,6 +268,10 @@ std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensor
 }
 
 std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output);
+
+// On TF_OK: nullopt means unknown rank, an empty vector means scalar, and -1
+// dimensions are unknown. On error, result is unchanged.
+TF_Code GetTensorShape(TF_Graph* graph, const TF_Output& output, std::optional<std::vector<std::int64_t>>& result, TF_Status* status = nullptr);
 
 std::vector<std::vector<std::int64_t>> GetTensorsShape(TF_Graph* graph, const std::vector<TF_Output>& output);
 

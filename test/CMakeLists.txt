@@ -5,7 +5,10 @@ target_include_directories(base.t PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/doctest"
 )
 target_include_scope_guard(base.t)
-target_compile_definitions(base.t PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
+target_compile_definitions(base.t PRIVATE
+  DOCTEST_CONFIG_USE_STD_HEADERS
+  HELLO_TF_EXPECTED_VERSION="${TENSORFLOW_VERSION}"
+)
 add_test(NAME base.t COMMAND base.t)
 target_link_libraries(base.t PRIVATE hello_tf_utils)
 
@@ -64,3 +67,6 @@ endif()
 if(TARGET batch_interface)
   add_test(NAME batch_interface.t COMMAND batch_interface)
 endif()
+
+get_property(hello_tf_tests DIRECTORY PROPERTY TESTS)
+set_tests_properties(${hello_tf_tests} PROPERTIES TIMEOUT 120)
