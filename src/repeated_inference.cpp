@@ -27,6 +27,42 @@
 #include <iostream>
 #include <vector>
 
+namespace {
+
+bool RunReference(TF_Graph* graph, TF_Output input, TF_Output output,
+                  const std::vector<std::int64_t>& input_dims, const std::vector<float>& input_values,
+                  std::vector<float>& result,
+                  TF_Status* status) {
+  auto reference_session = tf_utils::CreateSession(graph, status);
+  SCOPE_EXIT{ tf_utils::DeleteSession(reference_session); };
+  if (reference_session == nullptr) {
+    std::cout << "Failed to create reference session: " << TF_Message(status) << std::endl;
+    return false;
+  }
+
+  auto reference_input = tf_utils::CreateTensor(input_dims, input_values);
+  SCOPE_EXIT{ tf_utils::DeleteTensor(reference_input); };
+  if (reference_input == nullptr) {
+    std::cout << "Failed to create reference input" << std::endl;
+    return false;
+  }
+
+  TF_Tensor* reference_output = nullptr;
+  SCOPE_EXIT{ tf_utils::DeleteTensor(reference_output); };
+  if (tf_utils::RunSession(reference_session, &input, &reference_input, 1, &output, &reference_output, 1, status) != TF_OK) {
+    std::cout << "Failed to run reference session: " << TF_Message(status) << std::endl;
+    return false;
+  }
+
+  if (tf_utils::GetTensorData(reference_output, result, status) != TF_OK) {
+    std::cout << "Invalid reference output: " << TF_Message(status) << std::endl;
+    return false;
+  }
+  return true;
+}
+
+} // namespace
+
 int main() {
   auto graph = tf_utils::LoadGraph("graph.pb");
   SCOPE_EXIT{ tf_utils::DeleteGraph(graph); };
@@ -59,7 +95,7 @@ int main() {
 
   const std::vector<std::int64_t> input_dims = {1, 5, 12};
   std::vector<float> input_values(60, 0.0f);
-  auto input_tensor = tf_utils::CreateTensor(TF_FLOAT, input_dims, input_values);
+  auto input_tensor = tf_utils::CreateTensor(input_dims, input_values);
   SCOPE_EXIT{ tf_utils::DeleteTensor(input_tensor); };
   if (input_tensor == nullptr) {
     std::cout << "Failed to create input tensor" << std::endl;
@@ -90,23 +126,36 @@ int main() {
       return 7;
     }
 
-    last_result = tf_utils::GetTensorData<float>(output_tensors[0]);
+    if (tf_utils::GetTensorData(output_tensors[0], last_result, status) != TF_OK) {
+      std::cout << "Failed to read output tensor: " << TF_Message(status) << std::endl;
+      return 8;
+    }
     if (last_result.size() != 4) {
       std::cout << "Unexpected output tensor size" << std::endl;
       return 8;
     }
-    for (const auto value : last_result) {
-      if (!std::isfinite(value)) {
-        std::cout << "Unexpected output tensor value" << std::endl;
+
+    // Check reuse against a fresh session and a freshly populated input tensor.
+    std::vector<float> expected_result;
+    if (!RunReference(graph, input, output, input_dims, input_values, expected_result, status)) {
+      return 9;
+    }
+    if (expected_result.size() != last_result.size()) {
+      std::cout << "Invalid reference output: " << TF_Message(status) << std::endl;
+      return 9;
+    }
+    for (std::size_t i = 0; i < last_result.size(); ++i) {
+      const auto expected = expected_result[i];
+      const auto tolerance = 1.0e-5f * (1.0f + std::abs(expected));
+      if (!std::isfinite(expected) || !std::isfinite(last_result[i]) || std::abs(last_result[i] - expected) > tolerance) {
+        std::cout << "Unexpected output at iteration " << iteration << ", element " << i << ": expected " << expected << ", got " << last_result[i] << std::endl;
         return 9;
       }
     }
   }
 
   std::cout << "Ran repeated inference 10 times" << std::endl;
-  std::cout << "Last output values: "
-            << last_result[0] << ", " << last_result[1] << ", "
-            << last_result[2] << ", " << last_result[3] << std::endl;
+  std::cout << "Last output values: " << last_result[0] << ", " << last_result[1] << ", " << last_result[2] << ", " << last_result[3] << std::endl;
 
   return 0;
 }

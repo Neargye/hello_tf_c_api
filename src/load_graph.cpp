@@ -53,8 +53,9 @@ static bool FileSizeForBuffer(const char* file, std::size_t& size) {
   if (error || file_size == 0) {
     return false;
   }
-  if (file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max()) ||
-      file_size > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+  constexpr auto max_buffer_size = static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max());
+  constexpr auto max_stream_size = static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max());
+  if (file_size > max_buffer_size || file_size > max_stream_size) {
     return false;
   }
 

@@ -82,16 +82,16 @@ int main() {
                 nullptr, 0, // Target operations, number of targets.
                 nullptr, // Run metadata.
                 status // Output status.
-                );
+  );
 
   if (TF_GetCode(status) != TF_OK) {
     std::cout << "Failed to run session" << std::endl;
     return 5;
   }
 
-  auto data = static_cast<float*>(TF_TensorData(output_tensor));
-  if (data == nullptr) {
-    std::cout << "Output tensor data is null" << std::endl;
+  const auto data = tf_utils::GetTensorData<float>(output_tensor);
+  if (data.size() != 4) {
+    std::cout << "Unexpected output tensor type or size" << std::endl;
     return 9;
   }
 

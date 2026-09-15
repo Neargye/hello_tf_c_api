@@ -168,10 +168,8 @@ int main(int argc, char** argv) {
   }
 
   std::cout << "Read image file: " << image_path << std::endl;
-  std::cout << "Image tensor NHWC: "
-            << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
-  std::cout << "First pixel normalized RGB: "
-            << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
+  std::cout << "Image tensor NHWC: " << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
+  std::cout << "First pixel normalized RGB: " << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
   std::cout << "Processed OpenCV image file successfully" << std::endl;
 
   return 0;

@@ -90,7 +90,7 @@ int main() {
 
   if (code == TF_OK) {
     auto data = tf_utils::GetTensorsData<float>(output_tensors);
-    auto result = data[0];
+    const auto& result = data[0];
     if (result.size() < 8) {
       std::cout << "Unexpected output tensor data" << std::endl;
       return 6;

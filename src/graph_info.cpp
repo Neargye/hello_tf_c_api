@@ -24,10 +24,10 @@
 #include <scope_guard.hpp>
 #include <cstdint>
 #include <iostream>
-#include <string>
+#include <optional>
 #include <vector>
 
-void PrintOpInputs(TF_Graph*, TF_Operation* op) {
+void PrintOpInputs(TF_Operation* op) {
   auto num_inputs = TF_OperationNumInputs(op);
 
   std::cout << "Number of inputs: " << num_inputs << std::endl;
@@ -35,11 +35,11 @@ void PrintOpInputs(TF_Graph*, TF_Operation* op) {
   for (auto i = 0; i < num_inputs; ++i) {
     auto input = TF_Input{op, i};
     auto type = TF_OperationInputType(input);
-    std::cout << std::to_string(i) << " type: " << tf_utils::DataTypeToString(type) << std::endl;
+    std::cout << i << " type: " << tf_utils::DataTypeToString(type) << std::endl;
   }
 }
 
-void PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
+bool PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
   auto num_outputs = TF_OperationNumOutputs(op);
 
   std::cout << "Number of outputs: " << num_outputs << std::endl;
@@ -47,42 +47,32 @@ void PrintOpOutputs(TF_Graph* graph, TF_Operation* op, TF_Status* status) {
   for (auto i = 0; i < num_outputs; ++i) {
     auto output = TF_Output{op, i};
     auto type = TF_OperationOutputType(output);
-    std::cout << std::to_string(i) << " type: " << tf_utils::DataTypeToString(type);
+    std::cout << i << " type: " << tf_utils::DataTypeToString(type);
 
-    auto num_dims = TF_GraphGetTensorNumDims(graph, output, status);
+    std::optional<std::vector<std::int64_t>> dims;
+    if (tf_utils::GetTensorShape(graph, output, dims, status) != TF_OK) {
+      std::cout << " Failed to get tensor shape: " << TF_Message(status) << std::endl;
+      return false;
+    }
 
-    if (TF_GetCode(status) != TF_OK) {
-      std::cout << "Failed to get tensor dimensionality" << std::endl;
+    if (!dims) {
+      std::cout << " dims: unknown rank" << std::endl;
       continue;
     }
 
-    std::cout << " dims: " << num_dims;
-
-    if (num_dims <= 0) {
-      std::cout << " []" << std::endl;
-      continue;
-    }
-
-    std::vector<std::int64_t> dims(num_dims);
-    TF_GraphGetTensorShape(graph, output, dims.data(), num_dims, status);
-
-    if (TF_GetCode(status) != TF_OK) {
-      std::cout << "Failed to get tensor shape" << std::endl;
-      continue;
-    }
-
-    std::cout << " [";
-    for (auto j = 0; j < num_dims; ++j) {
-      std::cout << dims[j];
-      if (j < num_dims - 1) {
+    std::cout << " dims: " << dims->size() << " [";
+    for (std::size_t j = 0; j < dims->size(); ++j) {
+      std::cout << (*dims)[j];
+      if (j + 1 < dims->size()) {
         std::cout << ",";
       }
     }
     std::cout << "]" << std::endl;
   }
+  return true;
 }
 
-void PrintOps(TF_Graph* graph, TF_Status* status) {
+bool PrintOps(TF_Graph* graph, TF_Status* status) {
   TF_Operation* op;
   std::size_t pos = 0;
 
@@ -96,10 +86,13 @@ void PrintOps(TF_Graph* graph, TF_Status* status) {
 
     std::cout << pos << ": " << name << " type: " << type << " device: " << device << " number of inputs: " << num_inputs << " number of outputs: " << num_outputs << std::endl;
 
-    PrintOpInputs(graph, op);
-    PrintOpOutputs(graph, op, status);
+    PrintOpInputs(op);
+    if (!PrintOpOutputs(graph, op, status)) {
+      return false;
+    }
     std::cout << std::endl;
   }
+  return true;
 }
 
 int main() {
@@ -113,7 +106,5 @@ int main() {
   auto status = TF_NewStatus();
   SCOPE_EXIT{ TF_DeleteStatus(status); };
 
-  PrintOps(graph, status);
-
-  return 0;
+  return PrintOps(graph, status) ? 0 : 2;
 }

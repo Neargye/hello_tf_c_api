@@ -82,6 +82,10 @@ TF_Operation* AddScalarConst(TF_Graph* graph, const char* name, float value, TF_
   TF_SetAttrTensor(desc, "value", tensor, status);
   if (TF_GetCode(status) != TF_OK) {
     std::cout << "Failed to set const tensor: " << TF_Message(status) << std::endl;
+    // Finishing also disposes of desc on failure; preserve the original status.
+    auto cleanup_status = TF_NewStatus();
+    TF_FinishOperation(desc, cleanup_status);
+    TF_DeleteStatus(cleanup_status);
     return nullptr;
   }
 
@@ -191,10 +195,8 @@ int main() {
     }
   }
 
-  std::cout << "Input image tensor NHWC: "
-            << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
-  std::cout << "First pixel normalized RGB: "
-            << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
+  std::cout << "Input image tensor NHWC: " << image_dims[0] << "x" << image_dims[1] << "x" << image_dims[2] << "x" << image_dims[3] << std::endl;
+  std::cout << "First pixel normalized RGB: " << result[0] << ", " << result[1] << ", " << result[2] << std::endl;
   std::cout << "Processed image successfully" << std::endl;
 
   return 0;

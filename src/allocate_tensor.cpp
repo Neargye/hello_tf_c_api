@@ -32,10 +32,10 @@
 
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <scope_guard.hpp>
-#include <array>
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <numeric>
 #include <vector>

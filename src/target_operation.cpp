@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <vector>
 
 namespace {
@@ -53,6 +54,10 @@ TF_Operation* AddScalarConst(TF_Graph* graph, const char* name, float value, TF_
   TF_SetAttrTensor(desc, "value", tensor, status);
   if (TF_GetCode(status) != TF_OK) {
     std::cout << "Failed to set const tensor: " << TF_Message(status) << std::endl;
+    // Finishing also disposes of desc on failure; preserve the original status.
+    auto cleanup_status = TF_NewStatus();
+    TF_FinishOperation(desc, cleanup_status);
+    TF_DeleteStatus(cleanup_status);
     return nullptr;
   }
 
@@ -104,7 +109,7 @@ bool AlmostEqual(float lhs, float rhs) {
   return std::fabs(lhs - rhs) < 1.0e-6f;
 }
 
-float ReadScalar(TF_Session* session, TF_Output output, TF_Status* status) {
+std::optional<float> ReadScalar(TF_Session* session, TF_Output output, TF_Status* status) {
   const std::vector<TF_Output> inputs = {};
   const std::vector<TF_Tensor*> input_tensors = {};
   const std::vector<TF_Output> outputs = {output};
@@ -114,13 +119,13 @@ float ReadScalar(TF_Session* session, TF_Output output, TF_Status* status) {
   const auto code = tf_utils::RunSession(session, inputs, input_tensors, outputs, output_tensors, status);
   if (code != TF_OK || output_tensors[0] == nullptr) {
     std::cout << "Failed to read scalar: " << TF_Message(status) << std::endl;
-    return 0.0f;
+    return std::nullopt;
   }
 
   const auto values = tf_utils::GetTensorData<float>(output_tensors[0]);
   if (values.size() != 1) {
     std::cout << "Unexpected scalar output size" << std::endl;
-    return 0.0f;
+    return std::nullopt;
   }
 
   return values[0];
@@ -189,8 +194,8 @@ int main() {
   }
 
   const auto initial = ReadScalar(session, TF_Output{read_op, 0}, status);
-  if (!AlmostEqual(initial, 0.0f)) {
-    std::cout << "Unexpected initial value: " << initial << std::endl;
+  if (!initial || !AlmostEqual(*initial, 0.0f)) {
+    std::cout << "Failed to verify initial value" << std::endl;
     return 9;
   }
 
@@ -220,13 +225,13 @@ int main() {
   }
 
   const auto trained = ReadScalar(session, TF_Output{read_op, 0}, status);
-  if (!AlmostEqual(trained, 4.5f)) {
-    std::cout << "Unexpected trained value: " << trained << std::endl;
+  if (!trained || !AlmostEqual(*trained, 4.5f)) {
+    std::cout << "Failed to verify trained value" << std::endl;
     return 12;
   }
 
-  std::cout << "Initial value: " << initial << std::endl;
-  std::cout << "Value after running train_step target 3 times: " << trained << std::endl;
+  std::cout << "Initial value: " << *initial << std::endl;
+  std::cout << "Value after running train_step target 3 times: " << *trained << std::endl;
   std::cout << "Ran target operation successfully" << std::endl;
 
   return 0;

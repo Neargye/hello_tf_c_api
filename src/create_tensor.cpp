@@ -32,8 +32,10 @@
 
 #include <tensorflow/c/c_api.h> // TensorFlow C API header.
 #include <scope_guard.hpp>
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -66,15 +68,14 @@ int main() {
   std::copy(vals.begin(), vals.end(), data.get());
 
   auto tensor = TF_NewTensor(TF_FLOAT,
-                             dims.data(), static_cast<int>(dims.size()),
-                             data.get(), data_size,
-                             DeallocateTensor, nullptr);
+                            dims.data(), static_cast<int>(dims.size()),
+                            data.release(), data_size, // TensorFlow owns the buffer even on failure.
+                            DeallocateTensor, nullptr);
 
   if (tensor == nullptr) {
     std::cout << "Failed to create tensor" << std::endl;
     return 1;
   }
-  data.release();
   SCOPE_EXIT{ TF_DeleteTensor(tensor); };
 
   if (TF_TensorType(tensor) != TF_FLOAT) {
