@@ -14,14 +14,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-    set(CMAKE_VERBOSE_MAKEFILE ON)
-    add_compile_options(-Wall -Wextra -pedantic-errors -Werror)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+if(MSVC)
     add_compile_options(/W4 /WX)
     if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.11)
         add_compile_options(/permissive-)
     endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_VERBOSE_MAKEFILE ON)
+    add_compile_options(-Wall -Wextra -pedantic-errors -Werror)
 endif()
 add_compile_definitions(SCOPE_GUARD_NO_THROW_ACTION)
 
@@ -157,13 +157,13 @@ function(hello_tf_find_tensorflow_libraries)
         )
     elseif(APPLE)
         find_library(TENSORFLOW_LIBRARY
-            NAMES tensorflow libtensorflow.dylib tensorflow_cc libtensorflow_cc.2.dylib tensorflow_framework libtensorflow_framework.2.dylib
+            NAMES tensorflow libtensorflow.dylib tensorflow_cc libtensorflow_cc.2.dylib
             PATHS ${TENSORFLOW_LIBRARY_DIRS}
             NO_DEFAULT_PATH
         )
         if(NOT TENSORFLOW_LIBRARY)
             find_file(TENSORFLOW_LIBRARY
-                NAMES libtensorflow.dylib _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.2.dylib libtensorflow_framework.2.dylib
+                NAMES libtensorflow.dylib _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.2.dylib
                 PATHS ${TENSORFLOW_LIBRARY_DIRS}
                 NO_DEFAULT_PATH
             )
@@ -175,13 +175,13 @@ function(hello_tf_find_tensorflow_libraries)
         )
     else()
         find_library(TENSORFLOW_LIBRARY
-            NAMES tensorflow libtensorflow.so tensorflow_cc libtensorflow_cc.so.2 tensorflow_framework libtensorflow_framework.so.2
+            NAMES tensorflow libtensorflow.so tensorflow_cc libtensorflow_cc.so.2
             PATHS ${TENSORFLOW_LIBRARY_DIRS}
             NO_DEFAULT_PATH
         )
         if(NOT TENSORFLOW_LIBRARY)
             find_file(TENSORFLOW_LIBRARY
-                NAMES libtensorflow.so _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.so.2 libtensorflow_framework.so.2
+                NAMES libtensorflow.so _pywrap_tensorflow_common.so _pywrap_tensorflow_internal.so libtensorflow_cc.so.2
                 PATHS ${TENSORFLOW_LIBRARY_DIRS}
                 NO_DEFAULT_PATH
             )
@@ -279,9 +279,13 @@ endif()
 
 if(WIN32)
     set(TENSORFLOW_RUNTIME_OUTPUT_DIRS
-        "${CMAKE_BINARY_DIR}/$<CONFIG>"
-        "${CMAKE_BINARY_DIR}/test/$<CONFIG>"
+        "${CMAKE_BINARY_DIR}"
+        "${CMAKE_BINARY_DIR}/test"
     )
+    get_property(hello_tf_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(hello_tf_multi_config)
+        list(TRANSFORM TENSORFLOW_RUNTIME_OUTPUT_DIRS APPEND "/$<CONFIG>")
+    endif()
 
     set(TENSORFLOW_RUNTIME_COPY_COMMANDS)
     foreach(tensorflow_runtime_output_dir ${TENSORFLOW_RUNTIME_OUTPUT_DIRS})
