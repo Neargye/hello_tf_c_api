@@ -2,7 +2,8 @@ name: ubuntu
 
 on: [push, pull_request]
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -42,10 +43,28 @@ jobs:
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
-      run: cmake --build build --parallel
+      run: cmake --build build --parallel "$(nproc)"
 
     - name: Test
       run: ctest --test-dir build --output-on-failure
+
+    - name: Generate and run example graph
+      if: matrix.compiler.cc == 'gcc-14' && matrix.build_type == 'Release'
+      run: |
+        tensorflow_version=$(sed -n 's/^TENSORFLOW_VERSION:STRING=//p' build/CMakeCache.txt)
+        python -m venv build/model-env
+        build/model-env/bin/python -m pip install "tensorflow==${tensorflow_version}"
+        build/model-env/bin/python tools/create_example_graph.py --output build/generated-model/graph.pb
+        cd build/generated-model
+        timeout 120 ../repeated_inference | tee output.txt
+        ../model-env/bin/python - <<'PY'
+        import math
+        from pathlib import Path
+        line = next(line for line in Path("output.txt").read_text().splitlines() if line.startswith("Last output values: "))
+        actual = [float(value) for value in line.split(":", 1)[1].split(",")]
+        expected = [9.295, 18.59, 27.885, 37.18]
+        assert len(actual) == len(expected) and all(math.isclose(a, e, rel_tol=1e-5, abs_tol=1e-5) for a, e in zip(actual, expected)), actual
+        PY
 
   sanitizers:
     name: "clang-18 sanitizers"
@@ -69,13 +88,11 @@ jobs:
         ASAN_OPTIONS: detect_leaks=0:strict_init_order=1
         UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       run: |
-        rm -rf build-sanitizers
-        mkdir build-sanitizers
-        cd build-sanitizers
-        cmake .. \
+        cmake -S . -B build-sanitizers \
           -DCMAKE_BUILD_TYPE=Debug \
+          -DHELLO_TF_BUILD_EXAMPLES=OFF \
           -DCMAKE_CXX_COMPILER=clang++-18 \
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-        cmake --build . --target base.t -j 4 --config Debug
-        ctest --output-on-failure -C Debug -R "^base\\.t$"
+        cmake --build build-sanitizers --target base.t --parallel "$(nproc)"
+        ctest --test-dir build-sanitizers --output-on-failure -R "^base\\.t$"

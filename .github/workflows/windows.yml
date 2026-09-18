@@ -2,7 +2,8 @@ name: windows
 
 on: [push, pull_request]
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -36,7 +37,7 @@ jobs:
       run: cmake -S . -B build -A x64
 
     - name: Build
-      run: cmake --build build --parallel --config ${{ matrix.config }}
+      run: cmake --build build --parallel $env:NUMBER_OF_PROCESSORS --config ${{ matrix.config }}
 
     - name: Test
       run: ctest --test-dir build --output-on-failure -C ${{ matrix.config }}
