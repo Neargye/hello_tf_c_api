@@ -1,52 +1,32 @@
 # Prepare models
 
-## Repository example graph
+## Included graph
 
-The C API examples in this repository use `models/graph.pb`, which is committed to the repository. No external model download is required.
+The examples load the bundled `models/graph.pb`. CMake copies it to the build directory; no model download is needed.
 
-The example graph is intentionally small and has the operation names used by the sample programs:
+The inference examples use these operation names:
 
-- input: `input_4`
-- output: `output_node0`
+- `input_4`: float input, shape `[batch, 5, 12]`.
+- `output_node0`: float output, shape `[batch, 4]`.
 
-To regenerate this demo graph, use a normal Python environment where TensorFlow is available and run:
+Tensor names include an output index, such as `input_4:0`. Pass only `input_4` to `TF_GraphOperationByName`, then use `TF_Output{operation, 0}`. The [graph_info](../src/graph_info.cpp) example lists operations and shapes.
 
-```text
-python tools/create_example_graph.py --output models/graph.pb
+## Generate a test graph
+
+With TensorFlow installed in your Python environment, run from the repository root:
+
+```sh
+python tools/create_example_graph.py --output build/generated-model/graph.pb
 ```
 
-This script is only for the repository demo graph. The regular CMake build uses the committed `models/graph.pb` and does not require a full Python TensorFlow runtime.
+This creates a replacement graph with the same input/output interface. It returns the input mean multiplied by 1, 2, 3, and 4; it does **not** reproduce the bundled model's values. The command above leaves `models/graph.pb` unchanged.
 
-## GraphDef and SavedModel
+To try it, run the built example from `build/generated-model`: `../Release/repeated_inference.exe` on Windows or `../repeated_inference` on Linux/macOS.
 
-The examples load a serialized `GraphDef` (`.pb`) with `TF_GraphImportGraphDef` and execute it with `TF_SessionRun`. This keeps the C API examples small and makes the input/output operation names explicit.
+## Your own model
 
-Modern TensorFlow training code usually exports a `SavedModel`. For a real project, choose one of these routes:
+`LoadGraph` imports a serialized GraphDef. Update the operation names, tensor types, shapes, and preprocessing in the example to match your model.
 
-- Use `TF_LoadSessionFromSavedModel` and adapt the C++ code to the SavedModel tags and signature names.
-- Export a small inference-only `GraphDef` when you want to keep using the simple `TF_GraphImportGraphDef` path shown in this repository.
+If the graph needs a checkpoint, create a session and call `RestoreCheckpoint(session, graph, ...)` before inference. Pass the graph's checkpoint-path input and restore-operation names; the short overload assumes `save/Const` and `save/restore_all`. Restored values belong to that session.
 
-For new application code, prefer a clear SavedModel export unless you have a specific reason to ship a raw GraphDef.
-
-## Input and output names
-
-TensorFlow tools often show tensor names such as `input_4:0` and `output_node0:0`. The C API call `TF_GraphOperationByName` takes the operation name without the output index, so the examples use `input_4` and `output_node0`.
-
-Useful ways to inspect a model:
-
-- Run the `graph_info` and `tensor_info` examples against a GraphDef.
-- Inspect the model in Python before export.
-- Use TensorBoard for larger graphs.
-
-## Export notes
-
-Keep the inference artifact small and predictable:
-
-- Export only the inference path.
-- Avoid training-only operations in the runtime graph.
-- Keep preprocessing requirements explicit. If preprocessing is done in C++, feed already-normalized tensors into TensorFlow.
-- Keep input shapes and data types documented next to the C++ call site.
-
-## References
-
-- TensorFlow SavedModel guide: https://www.tensorflow.org/guide/saved_model
+A SavedModel directory needs `TF_LoadSessionFromSavedModel`, with the appropriate tags and input/output tensors. The helpers do not wrap this loader yet. See the [TensorFlow SavedModel guide](https://www.tensorflow.org/guide/saved_model).

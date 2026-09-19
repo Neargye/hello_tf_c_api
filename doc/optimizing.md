@@ -1,68 +1,24 @@
-# Optimizing models and examples
+# Runtime and performance
 
-This repository demonstrates TensorFlow C API usage on desktop Windows, Linux, and macOS. It links the native libraries from the TensorFlow Python wheel, so the main optimization target here is the model and runtime usage, not rebuilding a custom mobile TensorFlow runtime.
+## Reuse resources
 
-## Model format
+Load the graph and create the session once. Keep operation handles and reuse input tensors when their shapes stay the same; update their contents with `SetTensorData`.
 
-For the examples in this repository, `models/graph.pb` is a small GraphDef loaded with `TF_GraphImportGraphDef`.
+Keep input tensors alive during `RunSession`. The caller owns returned output tensors: delete each one after use and reset its slot to `nullptr` before the next call. `DeleteTensors` deletes the tensors but does not clear the pointers.
 
-For production models:
+The [repeated_inference](../src/repeated_inference.cpp) example demonstrates reuse. It also runs a fresh reference session on each iteration to check the result, so its total runtime is not an inference benchmark.
 
-- Prefer `SavedModel` when you want a standard TensorFlow 2 export format with signatures and assets.
-- Use a raw GraphDef when you need a compact single-file inference graph and can control the input/output operation names.
-- Use TensorFlow Lite for mobile and edge deployments where binary size, startup time, and model quantization are primary requirements.
+## Match the model's input
 
-## Runtime usage
+Check element type, shape, and data layout. For images, use the same resize, channel order, and normalization as during training. See [image_example](../src/image_example.cpp) for tensor construction and [opencv_image_file_example](../src/opencv_image_file_example.cpp) for loading an image file.
 
-Keep TensorFlow objects alive and reuse them:
+Use `CreateStringTensor` for `TF_STRING`; do not copy raw character bytes into string tensor storage.
 
-- Load the graph once.
-- Create the session once.
-- Reuse input/output operation handles.
-- Batch requests when latency requirements allow it.
-- Avoid repeated tensor allocation in hot paths when tensor shapes are stable.
+## Measure
 
-The examples keep each program small, so they create and destroy resources in `main`. A long-running application should move graph/session setup into its initialization path.
+- Use a Release build on the target hardware.
+- Warm up the session before timing repeated calls.
+- Measure preprocessing separately, and include it when reporting request latency.
+- Compare batch sizes and thread counts using representative inputs. Larger batches and more threads are not always faster.
 
-`TF_SessionRun` owns neither input tensors nor output tensors forever. The caller must keep input tensors alive for the call and must delete every output tensor returned by TensorFlow with `TF_DeleteTensor`. In a loop, delete output tensors on every iteration. The `repeated_inference` example shows this pattern while reusing the graph, session, operation handles, and input tensor.
-
-## Tensor shape and data layout
-
-Most runtime issues come from mismatched tensor shape, type, or layout. Keep these details close to the call site:
-
-- `TF_DataType`
-- dimensions
-- element count
-- byte size
-- channel order for image tensors
-- string tensor encoding rules for `TF_STRING`
-
-The helper functions in `tf_utils.hpp` are intentionally strict about element counts and byte sizes so mistakes fail early.
-
-## Image preprocessing
-
-If preprocessing is done in C++, keep it explicit and deterministic:
-
-- Decode image files outside TensorFlow unless your model intentionally contains decode operations.
-- Resize to the model's expected width and height.
-- Convert channel order if needed.
-- Normalize values the same way as during training.
-
-The `image_example` target shows tensor construction without external image dependencies. The optional `opencv_image_file_example` target shows file-based image preprocessing when OpenCV is available.
-
-## Measuring performance
-
-Measure the workload you actually ship:
-
-- Include preprocessing time when it is part of request latency.
-- Warm up the session before measuring steady-state inference.
-- Test representative batch sizes.
-- Test Release builds.
-- Measure on the same OS and CPU architecture as the deployment target.
-
-For lower-level TensorFlow benchmarking, use tools from the TensorFlow source tree or TensorFlow Lite tooling that matches your deployment format.
-
-## References
-
-- TensorFlow SavedModel guide: https://www.tensorflow.org/guide/saved_model
-- TensorFlow Lite model optimization: https://www.tensorflow.org/lite/performance/model_optimization
+`CreateSessionOptions(intra_threads, inter_threads)` controls TensorFlow thread counts. Pass the options when creating the session.

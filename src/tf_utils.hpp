@@ -269,8 +269,7 @@ std::vector<std::vector<T>> GetTensorsData(const std::vector<TF_Tensor*>& tensor
 
 std::vector<std::int64_t> GetTensorShape(TF_Graph* graph, const TF_Output& output);
 
-// On TF_OK: nullopt means unknown rank, an empty vector means scalar, and -1
-// dimensions are unknown. On error, result is unchanged.
+// On TF_OK: nullopt means unknown rank, an empty vector means scalar, and -1 dimensions are unknown. On error, result is unchanged.
 TF_Code GetTensorShape(TF_Graph* graph, const TF_Output& output, std::optional<std::vector<std::int64_t>>& result, TF_Status* status = nullptr);
 
 std::vector<std::vector<std::int64_t>> GetTensorsShape(TF_Graph* graph, const std::vector<TF_Output>& output);

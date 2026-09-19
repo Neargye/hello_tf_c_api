@@ -2,141 +2,79 @@
 
 ![TensorFlow C API Examples logo](logo.png)
 
-A small cross-platform set of TensorFlow C API examples for Windows, Linux, and macOS.
+TensorFlow C API examples for Windows, Linux, and macOS, with a small C++ helper library.
 
 ## Requirements
 
-* CMake 3.20 or newer.
-* C++17 compiler.
-* Python with pip. CI uses Python 3.12.
-* 64-bit target platform.
-
-## [Examples](src/)
-
-* [Hello TF](src/hello_tf.cpp)
-* [Load graph](src/load_graph.cpp)
-* [Create Tensor](src/create_tensor.cpp)
-* [Create String Tensor](src/create_string_tensor.cpp)
-* [Image processing](src/image_example.cpp)
-* [Run target operation](src/target_operation.cpp)
-* [OpenCV image file processing](src/opencv_image_file_example.cpp) (optional, requires OpenCV)
-* [Allocate Tensor](src/allocate_tensor.cpp)
-* [Run session](src/session_run.cpp)
-* [Repeated inference](src/repeated_inference.cpp)
-* [Interface](src/interface.cpp)
-* [Batch Interface](src/batch_interface.cpp)
-* [Tensor Info](src/tensor_info.cpp)
-* [Graph Info](src/graph_info.cpp)
+- CMake 3.20 or newer and a C++17 compiler.
+- Python with pip; CI uses Python 3.12.
+- A 64-bit platform supported by the TensorFlow wheel.
 
 ## Build and test
 
-### Windows
-
-```text
+```sh
 git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
 cd hello_tf_c_api
-mkdir build
-cd build
-cmake -A x64 ..
-cmake --build . --config Release
-ctest --output-on-failure -C Release
 ```
 
-### Linux
+### Windows (Visual Studio)
 
-```text
-git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
-cd hello_tf_c_api
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . -j 4
-ctest --output-on-failure
+```sh
+cmake -S . -B build -A x64
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure -C Release
 ```
 
-### macOS
+### Linux and macOS
 
-```text
-git clone --depth 1 https://github.com/Neargye/hello_tf_c_api
-cd hello_tf_c_api
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
-ctest --output-on-failure -C Release
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
-### Notes
+CMake downloads the TensorFlow 2.21.0 wheel into `build/_deps/tensorflow/python` and links its native libraries. On Windows, it also copies the runtime DLLs. You do not need to install TensorFlow into your Python environment to build the C++ examples.
 
-* CMake downloads TensorFlow 2.21.0 from the Python wheel into the build-local `<build>/_deps/tensorflow/python` cache by default.
-* To use an existing local TensorFlow wheel extraction, configure with `-DTENSORFLOW_ROOT=/path/to/tensorflow`. Auto-fetch only writes to the default build-local TensorFlow cache; it refuses to overwrite an external `TENSORFLOW_ROOT`. To require a pre-existing extraction and disable downloads during configure, add `-DHELLO_TF_FETCH_TENSORFLOW=OFF`.
-* Python with pip is required during CMake configure.
-* The small GraphDef used by graph and session examples is committed as `models/graph.pb`; no external model download is required.
-* To regenerate the example GraphDef, run `python tools/create_example_graph.py` from a Python environment where the full TensorFlow package is available.
-* OpenCV is optional. If CMake finds it, the OpenCV image-file example is built and tested.
-* On Windows, CMake copies the required TensorFlow runtime DLLs into the build output directories.
-* Tests use [doctest](test/3rdparty/doctest/doctest.h). CI also runs an ASan/UBSan test job on Ubuntu.
-* To configure only the helper library without example executables, add `-DHELLO_TF_BUILD_EXAMPLES=OFF`.
-* Tests follow CMake's standard `BUILD_TESTING` option. To configure without tests, add `-DBUILD_TESTING=OFF`.
+The repository includes `models/graph.pb`. Run examples from the `build` directory so they can find its copy: `./Release/repeated_inference.exe` on Windows or `./repeated_inference` on Linux/macOS.
 
-## TensorFlow library
+### Build options
 
-This project uses the TensorFlow 2.21.0 Python wheel and links the C API headers and native libraries from the local `<TENSORFLOW_ROOT>/python` directory. The CMake file creates an imported `tensorflow` target, a `hello_tf_utils` helper library target, and copies required runtime libraries where needed.
+Pass these options to `cmake -S . -B build`:
 
-`tf_utils::LoadGraph` only imports a GraphDef. If a graph needs checkpoint restore operations, create the session first and call `tf_utils::RestoreCheckpoint(session, graph, ...)` on that session. TensorFlow variable state belongs to `TF_Session`, not to `TF_Graph`.
+- `-DHELLO_TF_BUILD_EXAMPLES=OFF`: skip example executables.
+- `-DBUILD_TESTING=OFF`: skip tests.
+- `-DTENSORFLOW_ROOT=/path/to/tensorflow -DHELLO_TF_FETCH_TENSORFLOW=OFF`: use an existing wheel extraction. Headers must be under `<root>/python/tensorflow/include`, with native libraries under `<root>/python/tensorflow` or its `python` subdirectory. CMake does not overwrite an external root.
 
-If you want to link TensorFlow manually, use the headers from:
+OpenCV is optional. CMake builds and tests the OpenCV example when it finds the library.
 
-```text
-<TENSORFLOW_ROOT>/python/tensorflow/include
+## Examples
+
+- [TensorFlow version](src/hello_tf.cpp), [load a graph](src/load_graph.cpp).
+- [Create a tensor](src/create_tensor.cpp), [allocate a tensor](src/allocate_tensor.cpp), [string tensors](src/create_string_tensor.cpp).
+- [Run a session](src/session_run.cpp), [run a target operation](src/target_operation.cpp).
+- [Helper API](src/interface.cpp), [batch inference](src/batch_interface.cpp), [repeated inference](src/repeated_inference.cpp).
+- [Image tensors](src/image_example.cpp), [image files with OpenCV](src/opencv_image_file_example.cpp).
+- [Tensor information](src/tensor_info.cpp), [graph information](src/graph_info.cpp).
+
+## Helper API
+
+See [tf_utils.hpp](src/tf_utils.hpp) for declarations. Within this CMake project, link the helpers with:
+
+```cmake
+target_link_libraries(your_target PRIVATE hello_tf_utils)
 ```
 
-and the native libraries from:
+For raw C API examples, use the project's `target_link_tensorflow(your_target)` function. There is no installable CMake package.
 
-```text
-<TENSORFLOW_ROOT>/python/tensorflow
-<TENSORFLOW_ROOT>/python/tensorflow/python
-```
+- `CreateTensor(dims, values)` infers the TensorFlow type from the vector element type. Use `CreateStringTensor` for strings.
+- Reader overloads taking a result reference return `TF_Code` and leave the result unchanged on error. They distinguish errors from valid empty values.
+- The checked `GetTensorShape` writes `nullopt` for unknown rank, an empty vector for a scalar, and `-1` for unknown dimensions.
+- `RunSession` requires output slots initialized to `nullptr`. Delete returned tensors and reset the slots before reuse.
 
-You can also build the TensorFlow library version you need from source, with CPU or GPU support.
+## More
 
-### Project-local CMake targets
-
-#### CMakeLists.txt
-
-Examples that use the helper API link the `hello_tf_utils` target:
-
-```text
-target_link_libraries(<target> PRIVATE hello_tf_utils)
-```
-
-Examples that demonstrate only the raw TensorFlow C API use:
-
-```text
-target_link_tensorflow(<target>)
-```
-
-If another project needs a small part of this repository, copy the relevant example or helper source and wire it to that project's TensorFlow target explicitly. This repository is maintained as local examples plus tests, not as a packaged dependency.
-
-### Use TensorFlow in Visual Studio
-
-Open "Project" -> "Properties" -> "Configuration Properties" -> "C/C++" -> "Additional Include Directories" and add the TensorFlow include path.
-
-Open "Project" -> "Properties" -> "Configuration Properties" -> "Linker" -> "Additional Dependencies" and add the TensorFlow import library path.
-
-Make sure that the TensorFlow DLLs are in the output directory or in a directory contained by the `%PATH%` environment variable.
-
-### [Prepare models](doc/prepare_models.md)
-
-This repository already includes the demo `models/graph.pb` used by the examples. For your own models, prefer a TensorFlow 2 SavedModel export, or use a small inference-only GraphDef when you want the same import path as these examples.
-
-### [Optimize models and examples](doc/optimizing.md)
-
-### [Create a Windows import library from a TensorFlow DLL](doc/create_lib_file_from_dll_for_windows.md)
-
-### Further reading
-
-* https://www.tensorflow.org/guide/saved_model
-* https://www.tensorflow.org/lite/performance/model_optimization
+- [Prepare models](doc/prepare_models.md): GraphDef, operation names, and checkpoints.
+- [Runtime and performance](doc/optimizing.md): resource reuse and measurement.
+- [Create a Windows import library](doc/create_lib_file_from_dll_for_windows.md): only for manual linking.
 
 ## Licensed under the [MIT License](LICENSE)

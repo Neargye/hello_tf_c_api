@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the small GraphDef used by the C API examples.
+"""Generate a replacement GraphDef with the example input/output names.
 
 This script is intentionally separate from the CMake build. The examples use
 the committed models/graph.pb file so builds do not need a full TensorFlow
@@ -58,7 +58,7 @@ def generate_graph(output: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Regenerate the small GraphDef used by hello_tf_c_api examples."
+        description="Generate a test GraphDef with the example input/output names."
     )
     parser.add_argument(
         "--output",
