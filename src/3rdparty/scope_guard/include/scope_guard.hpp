@@ -5,7 +5,7 @@
 //  ____) | (_| (_) | |_) |  __/ | |__| | |_| | (_| | | | (_| | | |____|_|   |_|
 // |_____/ \___\___/| .__/ \___|  \_____|\__,_|\__,_|_|  \__,_|  \_____|
 //                  | | https://github.com/Neargye/scope_guard
-//                  |_| version 0.9.4
+//                  |_| version 0.9.5
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 // SPDX-License-Identifier: MIT
@@ -34,21 +34,20 @@
 
 #define SCOPE_GUARD_VERSION_MAJOR 0
 #define SCOPE_GUARD_VERSION_MINOR 9
-#define SCOPE_GUARD_VERSION_PATCH 4
+#define SCOPE_GUARD_VERSION_PATCH 5
 
 #include <cstddef>
+#include <exception>
 #include <type_traits>
 #include <utility>
-#if (defined(_MSC_VER) && _MSC_VER >= 1900) || ((defined(__clang__) || defined(__GNUC__)) && __cplusplus >= 201700L)
-#include <exception>
-#endif
 
-// scope_guard throwable settings:
-// SCOPE_GUARD_NO_THROW_CONSTRUCTIBLE requires nothrow constructible action.
-// SCOPE_GUARD_MAY_THROW_ACTION action may throw exceptions.
-// SCOPE_GUARD_NO_THROW_ACTION requires noexcept action.
-// SCOPE_GUARD_SUPPRESS_THROW_ACTION exceptions during action will be suppressed.
-// SCOPE_GUARD_CATCH_HANDLER exception handler statement. If SCOPE_GUARD_SUPPRESS_THROW_ACTION is not defined, it will do nothing.
+// scope_guard exception settings:
+// SCOPE_GUARD_NO_THROW_CONSTRUCTIBLE requires the action to be nothrow move-constructible.
+// SCOPE_GUARD_MAY_THROW_ACTION allows exceptions from the action to propagate (default).
+// SCOPE_GUARD_NO_THROW_ACTION requires the action to be noexcept.
+// SCOPE_GUARD_SUPPRESS_THROW_ACTION suppresses exceptions thrown by the action.
+// SCOPE_GUARD_CATCH_HANDLER is a non-throwing statement run when an action exception is caught. It is ignored unless SCOPE_GUARD_SUPPRESS_THROW_ACTION is defined.
+// Configure these settings consistently in every translation unit before including this header.
 
 #if !defined(SCOPE_GUARD_MAY_THROW_ACTION) && !defined(SCOPE_GUARD_NO_THROW_ACTION) && !defined(SCOPE_GUARD_SUPPRESS_THROW_ACTION)
 #  define SCOPE_GUARD_MAY_THROW_ACTION
@@ -58,6 +57,22 @@
 
 #if !defined(SCOPE_GUARD_CATCH_HANDLER)
 #  define SCOPE_GUARD_CATCH_HANDLER /* Suppress exception.*/
+#endif
+
+#if !defined(_MSC_VER) && (defined(__clang__) || defined(__GNUC__)) && __cplusplus < 201703L
+#  include <cxxabi.h>
+#  if !defined(__FreeBSD__) && (defined(_LIBCPPABI_VERSION) || defined(__OpenBSD__) || \
+      (defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__) < 407) || \
+      (defined(__QNXNTO__) && !defined(__GLIBCXX__) && !defined(__GLIBCPP__)))
+namespace __cxxabiv1 {
+struct __cxa_eh_globals;
+#    if defined(__OpenBSD__)
+extern "C" __cxa_eh_globals* __cxa_get_globals();
+#    else
+extern "C" __cxa_eh_globals* __cxa_get_globals() noexcept;
+#    endif
+}
+#  endif
 #endif
 
 namespace scope_guard {
@@ -104,11 +119,9 @@ namespace detail {
 #  endif
 #endif
 
-#if (defined(__clang__) || defined(__GNUC__)) && __cplusplus < 201700L
-struct __cxa_eh_globals;
-extern "C" __cxa_eh_globals* __cxa_get_globals() noexcept;
+#if !defined(_MSC_VER) && (defined(__clang__) || defined(__GNUC__)) && __cplusplus < 201703L
 inline int uncaught_exceptions() noexcept {
-  return static_cast<int>(*(reinterpret_cast<unsigned int*>(static_cast<char*>(static_cast<void*>(__cxa_get_globals())) + sizeof(void*))));
+  return static_cast<int>(*reinterpret_cast<const unsigned int*>(reinterpret_cast<const char*>(::__cxxabiv1::__cxa_get_globals()) + sizeof(void*)));
 }
 #else
 inline int uncaught_exceptions() noexcept {
@@ -191,7 +204,7 @@ class scope_guard {
 #endif
 #if defined(SCOPE_GUARD_NO_THROW_CONSTRUCTIBLE)
   static_assert(std::is_nothrow_move_constructible<A>::value,
-                "scope_guard requires nothrow constructible action.");
+                "scope_guard requires nothrow move-constructible action.");
 #endif
 
   P policy_;
@@ -208,7 +221,7 @@ class scope_guard {
 
   scope_guard(scope_guard&& other) noexcept(std::is_nothrow_move_constructible<A>::value)
       : policy_{false},
-        action_{NEARGYE_SCOPE_GUARD_MOV(other.action_)} {
+        action_(NEARGYE_SCOPE_GUARD_MOV(other.action_)) {
     policy_ = NEARGYE_SCOPE_GUARD_MOV(other.policy_);
     other.policy_.dismiss();
   }
@@ -218,7 +231,7 @@ class scope_guard {
 
   explicit scope_guard(A&& action) noexcept(std::is_nothrow_move_constructible<A>::value)
       : policy_{true},
-        action_{NEARGYE_SCOPE_GUARD_MOV(action)} {}
+        action_(NEARGYE_SCOPE_GUARD_MOV(action)) {}
 
   void dismiss() noexcept {
     policy_.dismiss();
@@ -344,27 +357,27 @@ using detail::make_scope_success;
 #define NEARGYE_SCOPE_GUARD_MAKE_SCOPE_FAIL    ::scope_guard::detail::scope_fail_tag{}    << NEARGYE_SCOPE_GUARD_ACTION
 #define NEARGYE_SCOPE_GUARD_MAKE_SCOPE_SUCCESS ::scope_guard::detail::scope_success_tag{} << NEARGYE_SCOPE_GUARD_ACTION
 
-#define NEARGYE_SCOPE_GUARD_WITH_(g, i, j) for (bool i = true; i; i = false) for (auto j = g; i; i = false)
-#define NEARGYE_SCOPE_GUARD_WITH(g)        NEARGYE_SCOPE_GUARD_WITH_(g, NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_FLAG_, NEARGYE_SCOPE_GUARD_COUNTER), NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_OBJECT_, NEARGYE_SCOPE_GUARD_COUNTER))
+#define NEARGYE_SCOPE_GUARD_WITH_(i, j, ...) for (bool i = true; i; i = false) for (auto j = __VA_ARGS__; i; i = false)
+#define NEARGYE_SCOPE_GUARD_WITH(...)        NEARGYE_SCOPE_GUARD_WITH_(NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_FLAG_, NEARGYE_SCOPE_GUARD_COUNTER), NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_OBJECT_, NEARGYE_SCOPE_GUARD_COUNTER), __VA_ARGS__)
 
-// SCOPE_EXIT executing action on scope exit.
+// SCOPE_EXIT executes the action on scope exit.
 #define MAKE_SCOPE_EXIT(name)  auto name = NEARGYE_SCOPE_GUARD_MAKE_SCOPE_EXIT
 #define SCOPE_EXIT             NEARGYE_SCOPE_GUARD_MAYBE_UNUSED const MAKE_SCOPE_EXIT(NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_SCOPE_EXIT_, NEARGYE_SCOPE_GUARD_COUNTER))
-#define WITH_SCOPE_EXIT(guard) NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_EXIT{ guard })
+#define WITH_SCOPE_EXIT(...)   NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_EXIT{ __VA_ARGS__ })
 
-// SCOPE_FAIL executing action on scope exit when an exception has been thrown before scope exit.
+// SCOPE_FAIL executes the action when the scope is left during exception unwinding.
 #define MAKE_SCOPE_FAIL(name)  auto name = NEARGYE_SCOPE_GUARD_MAKE_SCOPE_FAIL
 #define SCOPE_FAIL             NEARGYE_SCOPE_GUARD_MAYBE_UNUSED const MAKE_SCOPE_FAIL(NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_SCOPE_FAIL_, NEARGYE_SCOPE_GUARD_COUNTER))
-#define WITH_SCOPE_FAIL(guard) NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_FAIL{ guard })
+#define WITH_SCOPE_FAIL(...)   NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_FAIL{ __VA_ARGS__ })
 
-// SCOPE_SUCCESS executing action on scope exit when no exceptions have been thrown before scope exit.
+// SCOPE_SUCCESS executes the action when the scope is not left during exception unwinding.
 #define MAKE_SCOPE_SUCCESS(name)  auto name = NEARGYE_SCOPE_GUARD_MAKE_SCOPE_SUCCESS
 #define SCOPE_SUCCESS             NEARGYE_SCOPE_GUARD_MAYBE_UNUSED const MAKE_SCOPE_SUCCESS(NEARGYE_SCOPE_GUARD_STR_CONCAT(NEARGYE_SCOPE_GUARD_SCOPE_SUCCESS_, NEARGYE_SCOPE_GUARD_COUNTER))
-#define WITH_SCOPE_SUCCESS(guard) NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_SUCCESS{ guard })
+#define WITH_SCOPE_SUCCESS(...)   NEARGYE_SCOPE_GUARD_WITH(NEARGYE_SCOPE_GUARD_MAKE_SCOPE_SUCCESS{ __VA_ARGS__ })
 
-// DEFER executing action on scope exit.
+// DEFER executes the action on scope exit.
 #define MAKE_DEFER(name)  MAKE_SCOPE_EXIT(name)
 #define DEFER             SCOPE_EXIT
-#define WITH_DEFER(guard) WITH_SCOPE_EXIT(guard)
+#define WITH_DEFER(...)   WITH_SCOPE_EXIT(__VA_ARGS__)
 
 #endif // NEARGYE_SCOPE_GUARD_HPP
